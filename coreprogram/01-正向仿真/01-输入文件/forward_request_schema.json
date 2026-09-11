@@ -1,0 +1,175 @@
+{
+  "schema_version": "forward-request-v1",
+  "contract": "All six top-level sections are required. Unknown or missing fields are rejected. No business field has a default or fallback.",
+  "top_level_sections": [
+    "CASE",
+    "ENVIRONMENT",
+    "GROUP_STATE",
+    "OBSERVATION",
+    "TARGET_PHYSICS",
+    "TARGET_SCENE"
+  ],
+  "fields": {
+    "CASE": {
+      "TOTAL_TIME": {
+        "type": "number",
+        "unit": "s",
+        "constraint": ">0 finite"
+      },
+      "NUM_SPHERES": {
+        "type": "integer",
+        "constraint": ">=1"
+      }
+    },
+    "ENVIRONMENT": {
+      "SOLAR_FLUX": {
+        "type": "number",
+        "unit": "W/m^2",
+        "constraint": "finite"
+      },
+      "SOLAR_DIRECTION": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "ENVIRONMENT_TEMP": {
+        "type": "number",
+        "unit": "K",
+        "constraint": "finite"
+      }
+    },
+    "GROUP_STATE": {
+      "GROUP_CENTER": {
+        "type": "vector3",
+        "unit": "m",
+        "constraint": "finite"
+      },
+      "GROUP_NORMAL": {
+        "type": "vector3",
+        "unit": "-",
+        "constraint": "finite"
+      },
+      "GROUP_UP": {
+        "type": "vector3",
+        "unit": "-",
+        "constraint": "finite"
+      },
+      "GROUP_VELOCITY": {
+        "type": "vector3",
+        "unit": "m/s",
+        "constraint": "finite"
+      },
+      "GROUP_ANGULAR_VELOCITY": {
+        "type": "vector3",
+        "unit": "rad/s",
+        "constraint": "finite"
+      },
+      "GROUP_ANGULAR_ACCELERATION": {
+        "type": "vector3",
+        "unit": "rad/s^2",
+        "constraint": "finite"
+      }
+    },
+    "OBSERVATION": {
+      "APERTURE_CENTER": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "APERTURE_NORMAL": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "APERTURE_UP": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "APERTURE_VELOCITY": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "APERTURE_ANGULAR_VELOCITY": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "APERTURE_ANGULAR_ACCELERATION": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "DETECTOR_NORMAL": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "DETECTOR_UP": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "DETECTOR_VELOCITY": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "DETECTOR_ANGULAR_VELOCITY": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "DETECTOR_ANGULAR_ACCELERATION": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "APERTURE_TRACK_TARGET": {
+        "type": "boolean",
+        "serialization": "T/F"
+      },
+      "DETECTOR_TRACK_TARGET": {
+        "type": "boolean",
+        "serialization": "T/F"
+      },
+      "APERTURE_SIZE": {
+        "type": "number",
+        "unit": "m",
+        "constraint": "finite"
+      },
+      "SPOT_PLANE_SIZE": {
+        "type": "number",
+        "unit": "m",
+        "constraint": "finite"
+      },
+      "SPOT_FOCAL_LENGTH": {
+        "type": "number",
+        "unit": "m",
+        "constraint": "finite"
+      }
+    },
+    "TARGET_PHYSICS": {
+      "row_fields": [
+        "id",
+        "r",
+        "rho",
+        "cp",
+        "eps_ir",
+        "alpha_s",
+        "rho_ir",
+        "q_int",
+        "t_init"
+      ],
+      "row_count": "exactly NUM_SPHERES",
+      "id_constraint": "unique complete coverage 1..NUM_SPHERES"
+    },
+    "TARGET_SCENE": {
+      "row_fields": [
+        "id",
+        "x",
+        "y",
+        "z",
+        "vx",
+        "vy",
+        "vz",
+        "ax",
+        "ay",
+        "az",
+        "release_time",
+        "active"
+      ],
+      "row_count": "exactly NUM_SPHERES",
+      "id_constraint": "unique complete coverage 1..NUM_SPHERES; identical to TARGET_PHYSICS"
+    }
+  }
+}

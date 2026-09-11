@@ -1,0 +1,32 @@
+# Visual Studio
+.vs/
+**/.vs/
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+**/x64/
+
+# WPF build output
+GUI_WPF/**/bin/
+GUI_WPF/**/obj/
+GUI_WPF/**/.vs/
+
+# Legacy MFC build output
+GUI_MFC_Legacy/.vs/
+GUI_MFC_Legacy/x64/
+GUI_MFC_Legacy/.work/
+
+# Python cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Runtime outputs
+coreprogram/**/runs/
+coreprogram/**/reference_runs/
+
+# Temporary files
+*.tmp
+*.log
+~$*

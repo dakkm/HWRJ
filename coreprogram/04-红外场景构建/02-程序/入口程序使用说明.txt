@@ -1,0 +1,34 @@
+04-红外场景构建统一入口使用说明
+==============================
+
+正式入口：
+    04-红外场景构建\02-程序\scene_search_controller.py
+
+正式业务输入：
+1. 与01/02共用的 forward-request-v1 input_file；
+2. 温度相似度要求；
+3. 需要保留的候选数量。
+
+快速链路测试：
+    python scene_search_controller.py --proxy-only --max-candidates 5
+
+小规模完整链验证：
+    python scene_search_controller.py --max-candidates 5 --required-valid-count 1
+
+正式输出：
+    03-输出文件\runs\run_YYYYMMDD_HHMMSS_xxxxxxxx\
+
+每次调用独立保存，不覆盖。
+候选01正向复核结果仅在本轮 run 下的 forward_runs\ 中按需生成。
+
+共享基准缓存：
+    03-输出文件\reference_runs\
+该目录跨任务复用，不属于某个 run。
+
+最近任务：
+    03-输出文件\latest_run.json
+
+强制重算基准：
+    python scene_search_controller.py --no-reference-cache ...
+
+旧 ten_valid_parameters.csv / ten_valid_temperature_long.csv 已停止生成。

@@ -1,0 +1,29 @@
+{
+  "schema_version": "software-freeze-scope-v1",
+  "include_policy": "除exclude_paths/exclude_patterns外，程序说明目录下所有常规文件均纳入封板SHA256清单",
+  "exclude_paths": [
+    "_legacy_output_archive",
+    "01-正向仿真/03-输出文件/runs",
+    "02-智能预测/04-输出文件/runs",
+    "03-相似度评估/03-输出文件/runs",
+    "04-红外场景构建/03-输出文件/runs",
+    "04-红外场景构建/03-输出文件/reference_runs"
+  ],
+  "exclude_files": [
+    "01-正向仿真/03-输出文件/latest_run.json",
+    "02-智能预测/04-输出文件/latest_run.json",
+    "03-相似度评估/03-输出文件/latest_run.json",
+    "04-红外场景构建/03-输出文件/latest_run.json",
+    "00-文件SHA256校验清单.csv",
+    "00-封版元数据.json"
+  ],
+  "exclude_patterns": [
+    "__pycache__",
+    "*.pyc",
+    "*.pyo",
+    "*.tmp",
+    "*.bak",
+    "~$*"
+  ],
+  "mutable_output_policy": "运行输出、reference缓存与latest_run.json属于运行态数据，不纳入冻结校验；README等静态说明仍纳入。"
+}

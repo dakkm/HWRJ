@@ -1,0 +1,16 @@
+程序说明 v1.0.0-baseline 变更控制规则
+====================================
+
+1. 本基线封板后，不再直接修改业务代码、模型文件、接口合同和正式说明文件。
+2. 任何必要修复均视为新版本：
+   - 小修复：v1.0.1-baseline、v1.0.2-baseline ...
+   - 接口/功能变化：v1.1.0 或更高。
+3. 每次修改必须：
+   a) 更新 00-版本信息.json；
+   b) 重新运行 freeze_release.py；
+   c) 重新运行 verify_frozen_release.py；
+   d) 保存对应变更说明。
+4. runs、reference_runs、latest_run.json 属于运行态数据，不构成版本变化。
+5. 模型文件 best_model.keras、ExtraTrees joblib、scalers.json 等属于冻结资产；更换任一模型必须提升版本。
+6. forward_request_schema.json、config.json、01/02/03/04主入口脚本属于核心冻结文件；修改必须提升版本。
+7. “统一快速正向代理开发”作为独立项目推进，不直接覆盖本基线；验证成熟后再以新版本接入。

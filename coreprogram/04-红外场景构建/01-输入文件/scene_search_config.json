@@ -1,0 +1,20 @@
+{
+  "schema_version": "scene-search-internal-config-v2",
+  "candidate_pool_csv": "04-红外场景构建/01-输入文件/04_global_parameter_pool_10000.csv",
+  "surrogate_prescreen": {
+    "source": "02 temperature surrogate independent-validation accuracy",
+    "rule": "six_error_limits_K; independent of user required similarity",
+    "thresholds_K": {
+      "rmse": 12.193,
+      "mae": 10.157,
+      "max_abs_error": 32.248,
+      "final_abs_error": 12.247,
+      "plateau_abs_error": 12.246,
+      "early_abs_error": 32.062
+    }
+  },
+  "temperature_model_expected_sha256": "7aae9e013ed816e35c73a48fbbe53f6d4331298090e77c1c1a2d04cc2f13ad7a",
+  "candidate_order": "input file order; no sorting or ranking",
+  "forward_executable_sha_policy": "record_only; local oneAPI recompilation is allowed",
+  "formal_output": "candidate parameters only; point-image prediction is not part of the default 04 inverse-search acceptance chain"
+}

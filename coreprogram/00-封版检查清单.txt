@@ -1,0 +1,32 @@
+程序说明 v1.0.0-baseline 封板检查清单
+====================================
+
+[已确认的封板前提]
+[ ] 01/02/03/04当前代码已保存到目标目录
+[ ] 统一forward-request-v1接口文件已保存
+[ ] 02 Keras3 + TensorFlow兼容版本已保存
+[ ] 03新版相似度程序已保存
+[ ] 04共享input、相似度逆应用、reference缓存版本已保存
+[ ] 02/03/04 runs任务化输出版本已保存
+[ ] 旧输入/输出/Stage残余已按清理方案处理
+
+[用户明确跳过]
+[X] 完整01→02→03→04全链路回归验收：跳过
+[X] 02/03/04各运行两轮的输出覆盖验收：跳过
+
+因此封板状态必须记录为：
+frozen_baseline
+validation_state = full_regression_skipped_by_user
+
+[封板执行]
+[ ] 执行 python freeze_release.py
+[ ] 生成 00-文件SHA256校验清单.csv
+[ ] 生成 00-封版元数据.json
+[ ] 执行 python verify_frozen_release.py
+[ ] mismatch_count = 0
+[ ] missing_count = 0
+
+[归档]
+[ ] 复制为 程序说明_v1.0.0-baseline_20260911
+[ ] 压缩归档
+[ ] 原封板版本不再直接修改

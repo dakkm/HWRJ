@@ -1,0 +1,15 @@
+{
+  "schema_version": "software-freeze-metadata-v1",
+  "release_version": "v1.0.0-baseline",
+  "release_state": "frozen_baseline",
+  "validation_state": "full_regression_skipped_by_user",
+  "generated_at_utc": "2026-09-11T07:44:02.401181+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.13.5",
+  "file_count": 54,
+  "total_size_bytes": 131963398,
+  "manifest_file": "00-文件SHA256校验清单.csv",
+  "manifest_sha256": "70b17ce72d3d1c7ac41ebc54d11b61889ed8ed011492f7435e80e88eb757259f",
+  "scope_file": "00-封版范围.json",
+  "scope_sha256": "fc51d2a9bbb980e03424379f71f84cdde6797f70836543cbb57267a6a48e2a15"
+}

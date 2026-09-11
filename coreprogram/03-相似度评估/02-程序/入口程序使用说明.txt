@@ -1,0 +1,23 @@
+03-相似度评估统一入口使用说明
+============================
+
+正式入口：
+    03-相似度评估\02-程序\similarity_evaluator.py
+
+特征提取：
+    python similarity_evaluator.py --mode features --run-dir "<01正式output目录>"
+
+成对相似度：
+    python similarity_evaluator.py --mode similarity --reference-run "<参考output目录>" --candidate-run "<候选output目录>"
+
+默认输出：
+    03-输出文件\runs\run_YYYYMMDD_HHMMSS_xxxxxxxx\
+
+每次调用自动创建唯一任务目录。
+03-输出文件\latest_run.json 指向最近一次任务。
+
+如果使用：
+    --output-dir D:\somewhere
+该路径表示任务输出根目录，实际结果仍写入：
+    D:\somewhere\run_YYYYMMDD_HHMMSS_xxxxxxxx\
+因此不会覆盖前一轮。

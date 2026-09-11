@@ -1,0 +1,35 @@
+软件运行环境与部署说明（clean-runtime-v5）
+
+一、操作系统
+- 01正向仿真以及04中的真实正向复核需要 Windows x64；正式求解程序为 production_main_output_interface.exe。
+- 02、03及04的代理/指标部分由Python运行。
+
+二、Python运行依赖
+核心依赖包括 Python、NumPy、pandas、joblib、scikit-learn，以及点图像模型所需的 TensorFlow/Keras。
+M2 ExtraTrees正式部署优先使用 scikit-learn 1.6.1。点图像模型固定采用 Keras 3 + TensorFlow backend。
+
+三、正式入口
+正式GUI或上层程序只调用 config.json 中 standard_entries 列出的四个入口：
+- 01：forward_simulation_runner.py
+- 02：surrogate_prediction_runner.py
+- 03：similarity_evaluator.py
+- 04：scene_search_controller.py
+
+四、规范输入
+- 01与02共用完整 forward-request-v1 JSON。
+- 03不维护独立目标曲线文件，直接读取01正式运行结果目录。
+- 04正式业务输入为：共享input文件 + 相似度要求 + 候选筛选数量。
+- 04_global_parameter_pool_10000.csv 为04内部搜索资源，不属于用户业务输入。
+
+五、规范输出
+- 01仅在 01-正向仿真/03-输出文件/runs/run_xxx/output 下保存正式结果。
+- 02仅在 02-智能预测/04-输出文件/runs/run_xxx 下保存预测结果。
+- 03和04输出目录不预置历史结果，均由运行时生成。
+
+六、禁止事项
+- 不要直接把 Fortran EXE 作为正式业务入口，否则可能在input.dat所在目录生成output。
+- 不要恢复旧目标曲线CSV、旧三参数GUI输入、Optuna/Top-K脚本或历史Stage筛选文件到正式运行链。
+- 不要擅自扩展02冻结代理模型的训练参数域；超出适用域必须重新训练并验证。
+
+七、交付冻结
+完成最终文件清理和本机验收后再生成SHA256清单。运行期产生的 runs、__pycache__ 和临时输出不纳入交付校验清单。

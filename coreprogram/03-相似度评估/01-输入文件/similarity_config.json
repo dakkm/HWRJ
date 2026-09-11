@@ -1,0 +1,46 @@
+{
+  "schema_version": "similarity-config-v1",
+  "temperature": {
+    "object_id": 1,
+    "early_window_s": [0.0, 30.0],
+    "plateau_window_s": [100.0, 1000.0],
+    "reference_scale": "reference_temperature_range"
+  },
+  "screen": {
+    "nx": 256,
+    "ny": 256,
+    "width_m": 0.0128,
+    "height_m": 0.0128,
+    "spot_radius_cells": 0
+  },
+  "gray_mapping": {
+    "enabled": true,
+    "source": "detector_irradiance_W_m2",
+    "bit_depth": 8,
+    "min_value": 0.0,
+    "max_value": null,
+    "require_explicit_fixed_range": true,
+    "note": "The design report requires one fixed mapping across compared scenes. Set max_value only after the project freezes that physical mapping range; until then total_gray is marked invalid rather than auto-normalized per frame."
+  },
+  "periodic": {
+    "signals": [
+      "temperature_K",
+      "total_radiant_intensity_W_sr",
+      "total_received_power_W",
+      "total_gray"
+    ],
+    "min_samples": 16,
+    "uniform_time_rtol": 1e-6,
+    "min_std_relative": 1e-8,
+    "min_observed_cycles": 2.0,
+    "min_spectral_concentration": 0.2,
+    "max_frequency_Hz": null,
+    "implementation_convention": "linear detrend + rFFT; dominant non-zero bin; modulation_amplitude = 2*abs(FFT[k])/N"
+  },
+  "similarity": {
+    "aggregation": "minimum_valid_component",
+    "amplitude_zero_tolerance": 1e-30,
+    "variance_tolerance": 1e-30,
+    "time_alignment": "exact_no_interpolation"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "package_version": "handoff-clean-runtime-v5",
+  "path_rule": "All runtime resources are resolved from the software package root. Modules 01 and 02 share the same forward-request-v1 business input contract. Module 02 converts that complete request to frozen surrogate-model features and rejects unsupported variations.",
+  "forward_exe": "01-正向仿真/02-程序/production_main_output_interface.exe",
+  "temperature_model": "02-智能预测/03-模型文件/formal_configured_target_temperature_extratrees.joblib",
+  "point_image_model_dir": "02-智能预测/03-模型文件",
+  "point_image_scene_template": "02-智能预测/03-模型文件/point_image_fixed_scene_runtime.csv",
+  "notes": {
+    "default_scene_template": "已废止旧模板补全机制。clean_case_template.dat 只负责序列化，不提供业务默认值。",
+    "point_image_scene_template": "Internal frozen model-side feature template, not a user input file. It has been relocated from 02/01-输入文件 to 02/03-模型文件.",
+    "source_case_id": "Retained only as target/result provenance metadata. It no longer selects a per-case input.dat template.",
+    "user_parameter_contract": "旧三参数开放合同已废止。01统一入口采用完整 forward-request-v1 六分区参数合同。",
+    "clean_package": "Only current runtime dependencies, standardized inputs, model resources, interface docs and minimal examples are retained. Legacy Optuna/Top-K/screening scripts, duplicate target curves and historical batch outputs are removed.",
+    "forward_interface": "01统一入口要求完整 CASE/ENVIRONMENT/GROUP_STATE/OBSERVATION/TARGET_PHYSICS/TARGET_SCENE 请求；缺失、未知或额外字段均拒绝。",
+    "forward_output": "01 formal runtime outputs are written only under 01-正向仿真/03-输出文件/runs/run_xxx/output. Core files include temperature_history.csv, infrared_response_history.csv (including radiant_intensity_W_sr), trajectory_history.csv, frame_summary.csv, solver_status.txt and run_metadata.json.",
+    "rho_ir_policy": "rho_ir 现为 TARGET_PHYSICS 中的显式业务输入，不再由统一入口根据 eps_ir 自动推导。",
+    "surrogate_input": "02 no longer defines a three-parameter user request. The formal user input is the same complete forward-request-v1 JSON used by module 01; surrogate_standard_input.py performs model-applicability checks and feature extraction.",
+    "surrogate_applicability": "Current frozen models still support the original fixed scene and global q_int/eps_ir/alpha_s variation only. Unsupported changes in the complete request are rejected rather than silently ignored."
+  },
+  "forward_runtime_root": "01-正向仿真/03-输出文件/runs",
+  "surrogate_runtime_root": "02-智能预测/04-输出文件/runs",
+  "standard_entries": {
+    "01_forward": "01-正向仿真/02-程序/forward_simulation_runner.py",
+    "02_surrogate": "02-智能预测/02-程序/surrogate_prediction_runner.py",
+    "03_similarity": "03-相似度评估/02-程序/similarity_evaluator.py",
+    "04_scene_search": "04-红外场景构建/02-程序/scene_search_controller.py"
+  },
+  "package_profile": "clean_runtime_handoff_v5_standardized_files",
+  "forward_clean_template": "01-正向仿真/01-输入文件/clean_case_template.dat",
+  "forward_case_generator": "01-正向仿真/02-程序/generate_clean_formal_case.py",
+  "forward_numerical_config": "01-正向仿真/02-程序/production_numerical_config.json",
+  "forward_output_policy": "01-正向仿真/02-程序/production_output_policy.inc",
+  "forward_source": "01-正向仿真/02-程序/production_main_output_interface.f90",
+  "forward_request_schema": "01-正向仿真/01-输入文件/forward_request_schema.json",
+  "forward_request_example": "01-正向仿真/01-输入文件/forward_request_example.json",
+  "forward_module_document": "01-正向仿真/00-正向仿真模块统一说明.docx",
+  "surrogate_reference_request": "02-智能预测/03-模型文件/surrogate_reference_request.json"
+}

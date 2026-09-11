@@ -1,0 +1,10 @@
+{
+  "schema_version": "scene-search-request-v2",
+  "input_file": "01-正向仿真/01-输入文件/forward_request_example.json",
+  "similarity_requirement": {
+    "metric": "temperature_similarity",
+    "target_object_id": 1,
+    "required_percent": 95.0
+  },
+  "required_candidate_count": 10
+}

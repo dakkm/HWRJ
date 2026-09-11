@@ -1,0 +1,4 @@
+# 冻结后端必须保持字节级不变，禁止 Git 转换换行符
+coreprogram/** -text
+*.joblib filter=lfs diff=lfs merge=lfs -text
+*.keras filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,15 @@
+{
+  "schema_version": "software-release-version-v1",
+  "product_name": "程序说明",
+  "release_version": "v1.0.0-baseline",
+  "release_date": "2026-09-11",
+  "release_state": "frozen_baseline",
+  "validation_state": "full_regression_skipped_by_user",
+  "baseline_scope": "现有01正向仿真、02智能预测、03相似度评估、04红外场景构建及统一接口/输出体系",
+  "next_project": "统一快速正向代理开发",
+  "notes": [
+    "本版本用于冻结当前软件基线，不等同于已完成全链路回归验收。",
+    "封板后原则上不再在本版本直接修改业务代码；必要修复应提升补丁版本并重新生成SHA256清单。",
+    "统一快速正向代理作为独立后续项目开发，不直接覆盖本基线。"
+  ]
+}
