@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>PreProcess.Wpf</RootNamespace>
     <AssemblyName>PreProcess.Wpf</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -35,11 +35,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
+    <Reference Include="System" /><Reference Include="System.Configuration" /><Reference Include="System.Web.Extensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Net.Http" />
@@ -49,6 +50,7 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -94,5 +96,61 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Compile Include="ViewModels\ObservableObject.cs" />
+    <Compile Include="ViewModels\RelayCommand.cs" />
+    <Compile Include="ViewModels\NavigationItemViewModel.cs" />
+    <Compile Include="ViewModels\MainWindowViewModel.cs" />
+    <Compile Include="Views\PlaceholderPage.xaml.cs"><DependentUpon>PlaceholderPage.xaml</DependentUpon></Compile>
+    <Page Include="Views\PlaceholderPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Resources\WorkbenchStyles.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <None Include="Models\README.md" />
+    <None Include="Services\README.md" />
+  </ItemGroup>
+<ItemGroup>
+<Compile Include="Models\BindableModel.cs" />
+<Compile Include="Models\CalculationSettings.cs" />
+<Compile Include="Models\EnvironmentObservationSettings.cs" />
+<Compile Include="Models\SceneMotionSettings.cs" />
+<Compile Include="Models\TargetPhysics.cs" />
+<Compile Include="Models\TargetGeometrySettings.cs" />
+<Compile Include="Models\TaskModel.cs" />
+<Compile Include="Models\Vector3.cs" />
+<Compile Include="Models\Results\ResultModuleType.cs" />
+<Compile Include="Models\Results\ResultData.cs" />
+<Compile Include="Models\Results\RunResult.cs" />
+<Compile Include="Models\Results\TemperatureResult.cs" />
+<Compile Include="Models\Results\TrajectoryResult.cs" />
+<Compile Include="Models\Results\InfraredResult.cs" />
+<Compile Include="Models\Results\SimilarityResult.cs" />
+<Compile Include="Models\Results\SceneResult.cs" />
+<Compile Include="Models\Results\PointImageResult.cs" />
+<Compile Include="Requests\ForwardSimulationRequest.cs" />
+<Compile Include="Requests\ModuleRequests.cs" />
+<Compile Include="Services\Mappers\ForwardSimulationMapper.cs" />
+<Compile Include="Services\Mappers\PredictionMapper.cs" />
+<Compile Include="Services\Mappers\TrajectoryMapper.cs" />
+<Compile Include="Services\Mappers\SimilarityEvaluationMapper.cs" />
+<Compile Include="Services\Mappers\SceneBuildMapper.cs" />
+<Compile Include="Validation\CapabilityValidator.cs" /><Compile Include="Services\RequestGenerator.cs" /><Compile Include="Services\ForwardRequestValidator.cs" /><EmbeddedResource Include="Resources\forward_request_schema.json"><LogicalName>PreProcess.Wpf.forward_request_schema.json</LogicalName></EmbeddedResource>
+<Compile Include="ViewModels\TaskEditorViewModel.cs" />
+<Compile Include="ViewModels\ResultBrowserViewModel.cs" />
+<Compile Include="ViewModels\ResultVisualizationViewModels.cs" />
+<Page Include="Views\Vector3Editor.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\Vector3Editor.xaml.cs"><DependentUpon>Vector3Editor.xaml</DependentUpon></Compile>
+<Page Include="Views\TargetPhysicsEditor.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\TargetPhysicsEditor.xaml.cs"><DependentUpon>TargetPhysicsEditor.xaml</DependentUpon></Compile>
+<Page Include="Views\TaskSettingsView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\TaskSettingsView.xaml.cs"><DependentUpon>TaskSettingsView.xaml</DependentUpon></Compile>
+<Page Include="Views\TargetSettingsView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\TargetSettingsView.xaml.cs"><DependentUpon>TargetSettingsView.xaml</DependentUpon></Compile>
+<Page Include="Views\SceneMotionView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\SceneMotionView.xaml.cs"><DependentUpon>SceneMotionView.xaml</DependentUpon></Compile>
+<Page Include="Views\EnvironmentObservationView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\EnvironmentObservationView.xaml.cs"><DependentUpon>EnvironmentObservationView.xaml</DependentUpon></Compile>
+<Page Include="Views\CalculationOutputView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+<Compile Include="Views\CalculationOutputView.xaml.cs"><DependentUpon>CalculationOutputView.xaml</DependentUpon></Compile>
+</ItemGroup>
+<ItemGroup><Compile Include="Services\Process\GuiProgressParser.cs" /><Compile Include="Services\Process\ProcessLogEvent.cs" /><Compile Include="Services\Process\ProcessManager.cs" /><Compile Include="Services\Process\ProcessProgressEvent.cs" /><Compile Include="Services\Process\ProcessRunRequest.cs" /><Compile Include="Services\Process\ProcessRunResult.cs" /><Compile Include="Services\Process\WindowsJobProcess.cs" /><Compile Include="Services\Execution\BackendPathResolver.cs" /><Compile Include="Services\Execution\ForwardSimulationService.cs" /><Compile Include="ViewModels\ForwardRunViewModel.cs" /><Page Include="Views\ForwardRunView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ForwardRunView.xaml.cs"><DependentUpon>ForwardRunView.xaml</DependentUpon></Compile></ItemGroup>
+<ItemGroup><Compile Include="Services\Execution\RunRecord.cs" /><Compile Include="Services\Execution\RuntimePackage.cs" /><Compile Include="Services\Execution\ModuleExecutionService.cs" /><Compile Include="Services\Execution\PredictionService.cs" /><Compile Include="Services\Execution\SimilarityEvaluationService.cs" /><Compile Include="Services\Execution\SceneBuildService.cs" /><Compile Include="Services\Execution\ReferenceTaskLoader.cs" /><Compile Include="Services\Results\ResultDirectoryManager.cs" /><Compile Include="Services\Results\ResultDirectoryLoader.cs" /><Compile Include="Services\Results\PointImageBuilder.cs" /><Compile Include="Services\Results\ResultReadException.cs" /><Compile Include="Services\Results\ResultReaderBase.cs" /><Compile Include="Services\Results\ForwardResultReader.cs" /><Compile Include="Services\Results\PredictionResultReader.cs" /><Compile Include="Services\Results\SimilarityResultReader.cs" /><Compile Include="Services\Results\SceneResultReader.cs" /><Compile Include="Services\Results\ResultReader.cs" /><Page Include="Views\ModuleExecutionPanel.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ModuleExecutionPanel.xaml.cs"><DependentUpon>ModuleExecutionPanel.xaml</DependentUpon></Compile><Page Include="Views\ResultBrowserView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ResultBrowserView.xaml.cs"><DependentUpon>ResultBrowserView.xaml</DependentUpon></Compile><Compile Include="Views\ChartView.cs" /><Page Include="Views\ImageView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ImageView.xaml.cs"><DependentUpon>ImageView.xaml</DependentUpon></Compile><Compile Include="Views\RunManagementViews.cs" /><Page Include="Views\CurrentTaskView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Page Include="Views\RunHistoryView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Page Include="Views\OutputResultsView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page></ItemGroup>  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

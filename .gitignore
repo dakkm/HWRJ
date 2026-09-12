@@ -12,11 +12,6 @@ GUI_WPF/**/bin/
 GUI_WPF/**/obj/
 GUI_WPF/**/.vs/
 
-# Legacy MFC build output
-GUI_MFC_Legacy/.vs/
-GUI_MFC_Legacy/x64/
-GUI_MFC_Legacy/.work/
-
 # Python cache
 **/__pycache__/
 **/*.pyc

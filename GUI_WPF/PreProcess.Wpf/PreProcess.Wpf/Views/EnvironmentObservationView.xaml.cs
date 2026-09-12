@@ -1,0 +1,1 @@
+﻿using System.Windows.Controls; namespace PreProcess.Wpf.Views { public partial class EnvironmentObservationView : UserControl { public EnvironmentObservationView() { InitializeComponent(); } } }

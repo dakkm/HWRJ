@@ -1,0 +1,34 @@
+<UserControl x:Class="PreProcess.Wpf.Views.ModuleExecutionPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <UserControl.Resources><BooleanToVisibilityConverter x:Key="Visible"/></UserControl.Resources>
+ <StackPanel Margin="18">
+  <TextBlock Text="{Binding ModuleTitle}" FontSize="24" FontWeight="SemiBold"/>
+  <StackPanel IsEnabled="{Binding CanEdit}">
+   <TextBlock Text="当前功能由左侧“功能模块”导航确定。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8"/>
+   <StackPanel Visibility="{Binding IsForward, Converter={StaticResource Visible}}">
+    <TextBlock Text="使用当前任务调用正向入口。轨迹由正向求解器生成；本页不执行轨迹后处理。" TextWrapping="Wrap" Margin="0,8"/>
+    <CheckBox Content="仅准备输入（不执行求解）" IsChecked="{Binding PrepareOnly}" Margin="0,8"/>
+   </StackPanel>
+   <StackPanel Visibility="{Binding IsPrediction, Converter={StaticResource Visible}}">
+    <TextBlock Text="预测使用同一任务。后端只接受固定参考场景及允许范围内的统一物性。点图像另需后端模型依赖。" TextWrapping="Wrap" Margin="0,8"/>
+    <ComboBox ItemsSource="{Binding PredictionModes}" SelectedItem="{Binding PredictionMode}"/>
+    <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
+   </StackPanel>
+   <StackPanel Visibility="{Binding IsSimilarity, Converter={StaticResource Visible}}">
+    <TextBlock Text="当前评价器要求两份正式正向 output 目录（温度和红外历史文件）。原始 02 预测目录不符合该合同；不会自动转换或补算。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="Reference result 目录"/><TextBox Text="{Binding ReferenceDirectory, UpdateSourceTrigger=PropertyChanged}"/>
+    <TextBlock Text="Candidate result 目录"/><TextBox Text="{Binding CandidateDirectory, UpdateSourceTrigger=PropertyChanged}"/>
+    <TextBlock Text="Evaluation config 路径（留空使用后端默认）"/><TextBox Text="{Binding EvaluationConfig, UpdateSourceTrigger=PropertyChanged}"/>
+   </StackPanel>
+   <StackPanel Visibility="{Binding IsScene, Converter={StaticResource Visible}}">
+    <TextBlock Text="直接调用场景搜索入口，由后端完成预测、正向复核和评价。验收阈值取自计算与输出页面的当前任务；本操作会启动实际求解。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="所需候选数量"/><TextBox Text="{Binding RequiredCandidates, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
+    <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
+   </StackPanel>
+  </StackPanel>
+  <StackPanel Orientation="Horizontal"><Button Content="运行本模块" Command="{Binding RunCommand}" Padding="12,6" Margin="0,8,12,8"/><Button Content="停止" Command="{Binding StopCommand}" Padding="12,6" Margin="0,8,12,8"/></StackPanel>
+  <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12"/>
+  <TextBlock Text="本次运行位置" FontWeight="SemiBold"/>
+  <TextBox Text="{Binding ResultLocation, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,8"/>
+  <TextBlock Text="日志与警告在底部更新。03 入口未提供阶段进度，运行期间显示运行状态。" TextWrapping="Wrap"/>
+ </StackPanel>
+</UserControl>

@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="PreProcess.Wpf.Views.EnvironmentObservationView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:PreProcess.Wpf.Views">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="18">
+      <TextBlock Text="环境与观测" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <GroupBox Header="辐射环境" Margin="0,10,0,0" Padding="10">
+        <StackPanel>
+          <StackPanel Margin="0,5">
+            <TextBlock Text="太阳辐照度 (W/m²)" TextWrapping="Wrap" />
+            <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Environment.SolarFlux, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="太阳辐照度 (W/m²)" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="太阳方向" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.SunDirection}" />
+          </StackPanel>
+          <StackPanel Margin="0,5">
+            <TextBlock Text="环境辐射温度 (K)" TextWrapping="Wrap" />
+            <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Environment.RadiationTemperature, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="环境辐射温度 (K)" />
+          </StackPanel>
+        </StackPanel>
+      </GroupBox>
+      <GroupBox Header="观测与光学" Margin="0,10,0,0" Padding="10">
+        <StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="观测位置 (m)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.ObserverPosition}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="观测方向" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.ObserverDirection}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="参考上方向" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.ObserverUp}" />
+          </StackPanel>
+          <CheckBox Content="孔径跟踪目标群中心" IsChecked="{Binding Editor.Task.Environment.ApertureTracking}" Margin="0,8" />
+          <CheckBox Content="探测器跟踪目标群中心" IsChecked="{Binding Editor.Task.Environment.DetectorTracking}" Margin="0,8" />
+          <StackPanel Margin="0,5">
+            <TextBlock Text="孔径尺寸 (m)" TextWrapping="Wrap" />
+            <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Environment.ApertureSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="孔径尺寸 (m)" />
+          </StackPanel>
+          <StackPanel Margin="0,5">
+            <TextBlock Text="焦距 (m)" TextWrapping="Wrap" />
+            <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Environment.FocalLength, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="焦距 (m)" />
+          </StackPanel>
+          <StackPanel Margin="0,5">
+            <TextBlock Text="像面尺寸 (m)" TextWrapping="Wrap" />
+            <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Environment.PlaneSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="像面尺寸 (m)" />
+          </StackPanel>
+        </StackPanel>
+      </GroupBox>
+      <Expander Header="高级：观测系统姿态与运动" Margin="0,14">
+        <StackPanel Margin="8">
+          <StackPanel Margin="0,8">
+            <TextBlock Text="孔径速度 (m/s)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.ObserverVelocity}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="孔径角速度 (rad/s)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.ObserverAngularVelocity}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="孔径角加速度 (rad/s²)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.ObserverAngularAcceleration}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="探测器方向" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.DetectorDirection}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="探测器参考上方向" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.DetectorUp}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="探测器速度 (m/s)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.DetectorVelocity}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="探测器角速度 (rad/s)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.DetectorAngularVelocity}" />
+          </StackPanel>
+          <StackPanel Margin="0,8">
+            <TextBlock Text="探测器角加速度 (rad/s²)" TextWrapping="Wrap" />
+            <views:Vector3Editor DataContext="{Binding Editor.Task.Environment.DetectorAngularAcceleration}" />
+          </StackPanel>
+        </StackPanel>
+      </Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
