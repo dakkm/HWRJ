@@ -35,7 +35,17 @@ namespace PreProcess.Wpf.Services.Execution
             string entry = Absolute(package, (string)entries["01_forward"]);
             if (!File.Exists(entry)) throw new FileNotFoundException("正向计算入口文件不存在。", entry);
             string python = ConfigurationManager.AppSettings["PythonExecutable"];
-            python = FindExecutable(String.IsNullOrWhiteSpace(python) ? "python.exe" : python, app);
+            if (String.IsNullOrWhiteSpace(python))
+            {
+                string bundled = Path.Combine(app, ".python-runtime", "Scripts", "python.exe");
+                python = File.Exists(bundled) ? bundled : FindExecutable("python.exe", app);
+            }
+            else
+            {
+                string configured = Absolute(app, python);
+                if (File.Exists(configured)) python = configured;
+                else python = FindExecutable(python, app);
+            }
             string runtime = ConfigurationManager.AppSettings["RuntimeRoot"];
             if (String.IsNullOrWhiteSpace(runtime)) runtime = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PreProcess", "Runtime");
             else runtime = Absolute(app, runtime);

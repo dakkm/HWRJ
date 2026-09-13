@@ -1,0 +1,17 @@
+﻿{
+    "Module":  "01",
+    "RunId":  "run_20260912_044616_71721423",
+    "RequestPath":  "D:\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\requests\\72bdf9c22d434b9dadb7c239ca29d685\\request.json",
+    "BackendRequestPath":  "D:\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\runs\\run_20260912_044616_71721423\\request.json",
+    "RunDirectory":  "D:\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\runs\\run_20260912_044616_71721423",
+    "ResultDirectory":  "D:\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\runs\\run_20260912_044616_71721423\\output",
+    "RuntimePackage":  null,
+    "StartedAt":  "\/Date(1789159576105)\/",
+    "EndedAt":  "\/Date(1789159577038)\/",
+    "State":  4,
+    "ExitCode":  0,
+    "PrepareOnly":  true,
+    "Message":  "输入准备完成（未执行求解）。",
+    "Diagnostic":  null,
+    "BackendStatus":  null
+}

@@ -56,6 +56,7 @@ namespace PreProcess.Wpf.ViewModels
             DataSets = new ObservableCollection<ResultDataSetViewModel>();
             PointImages = new ObservableCollection<PointImageViewModel>();
             TemperatureChart = new ChartViewModel { XAxisTitle = "Time / s", YAxisTitle = "Temperature / K" };
+            TrajectoryDiagram = new TrajectoryDiagramViewModel();
         }
 
         public string ModuleTitle { get; private set; }
@@ -70,13 +71,16 @@ namespace PreProcess.Wpf.ViewModels
         public bool HasSummary { get { return Summary.Count > 0; } }
         public bool HasDataSets { get { return DataSets.Count > 0; } }
         public bool HasTemperatureChart { get { return TemperatureChart != null && TemperatureChart.HasData; } }
+        public bool HasTrajectoryDiagram { get { return TrajectoryDiagram != null && TrajectoryDiagram.HasData; } }
         public bool HasPointImages { get { return PointImages.Count > 0; } }
         public ObservableCollection<ResultSummaryItemViewModel> Summary { get; private set; }
         public ObservableCollection<string> Issues { get; private set; }
         public ObservableCollection<ResultDataSetViewModel> DataSets { get; private set; }
         public ObservableCollection<PointImageViewModel> PointImages { get; private set; }
         public ChartViewModel TemperatureChart { get; private set; }
+        public TrajectoryDiagramViewModel TrajectoryDiagram { get; private set; }
         public string TemperatureEmptyMessage { get; private set; }
+        public string TrajectoryEmptyMessage { get; private set; }
         public string ImageEmptyMessage { get; private set; }
 
         public ResultDataSetViewModel SelectedDataSet
@@ -100,6 +104,7 @@ namespace PreProcess.Wpf.ViewModels
                 AvailabilityMessage = "当前模块尚无结果。",
                 EmptyMessage = "运行当前模块后，可在此查看结果概要和数据表。"
                 , TemperatureEmptyMessage = "暂无温度曲线数据。"
+                , TrajectoryEmptyMessage = "暂无轨迹数据。"
                 , ImageEmptyMessage = "暂无可重建的红外图像数据。"
             };
         }
@@ -114,6 +119,7 @@ namespace PreProcess.Wpf.ViewModels
                 EmptyMessage = "结果生成后将自动读取。",
                 IsLoading = true
                 , TemperatureEmptyMessage = "结果生成后将自动显示温度曲线。"
+                , TrajectoryEmptyMessage = "结果生成后将自动显示轨迹示意图。"
                 , ImageEmptyMessage = "结果生成后将自动显示红外图像。"
             };
         }
@@ -132,6 +138,7 @@ namespace PreProcess.Wpf.ViewModels
                     ? "本次运行未产生可显示的数据。"
                     : "本次运行未完成，没有可显示的结果数据。",
                 TemperatureEmptyMessage = "本次运行没有可显示的温度曲线。",
+                TrajectoryEmptyMessage = "本次运行没有可显示的轨迹数据。",
                 ImageEmptyMessage = "本次运行没有可显示的红外图像。"
             };
             AddRecordSummary(view, record);
@@ -168,6 +175,7 @@ namespace PreProcess.Wpf.ViewModels
             AddArtifacts(view, result.Similarities);
             AddArtifacts(view, result.Scenes);
             view.TemperatureChart = ChartViewModel.From(result.Temperatures);
+            view.TrajectoryDiagram = TrajectoryDiagramViewModel.From(result.Trajectories);
             foreach (PointImageResult image in result.PointImages)
             {
                 PointImageViewModel converted = PointImageViewModel.From(image);
@@ -179,6 +187,7 @@ namespace PreProcess.Wpf.ViewModels
                 ? (result.AvailabilityMessage ?? "结果目录中没有可显示的数据表。")
                 : String.Empty;
             view.TemperatureEmptyMessage = view.HasTemperatureChart ? String.Empty : "当前结果不包含可显示的温度曲线。";
+            view.TrajectoryEmptyMessage = view.HasTrajectoryDiagram ? String.Empty : "当前结果不包含可显示的轨迹数据。";
             view.ImageEmptyMessage = view.HasPointImages ? String.Empty : "当前结果格式不支持红外图像重建；接口已保留。";
             return view;
         }
@@ -190,6 +199,7 @@ namespace PreProcess.Wpf.ViewModels
             view.AvailabilityMessage = "后端运行记录已保留，但结果无法显示。";
             view.EmptyMessage = "请检查结果文件和警告信息。";
             view.TemperatureEmptyMessage = view.EmptyMessage;
+            view.TrajectoryEmptyMessage = view.EmptyMessage;
             view.ImageEmptyMessage = view.EmptyMessage;
             view.Issues.Add(error == null ? "结果读取失败。" : error.Message);
             return view;

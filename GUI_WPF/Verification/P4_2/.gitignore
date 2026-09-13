@@ -1,0 +1,8 @@
+# Local execution evidence retained on disk; do not stage backend deployment copies or snapshots.
+/before/
+/integration/runtime/
+/integration/fixture-runtime/
+/integration/fixture-packages/
+/process-regression/
+/ui-runtime/
+/ui-real-runtime/

@@ -4,6 +4,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using PreProcess.Wpf.Models.Results;
+using PreProcess.Wpf.Services.Execution;
+using PreProcess.Wpf.Services.Process;
 using PreProcess.Wpf.Services.Results;
 using PreProcess.Wpf.ViewModels;
 
@@ -17,6 +19,8 @@ internal static class Program
         try
         {
             TestForward(root);
+            TestTrajectoryImport(root);
+            TestTrajectoryInputModes(root);
             TestPrediction(root);
             TestSimilarity(root);
             TestScene(root);
@@ -41,7 +45,38 @@ internal static class Program
         Check(result.PointImages.Count == 1 && result.PointImages[0].Values.Count(v => v > 0) == 2, "forward PointImageResult conversion");
         ResultBrowserViewModel view = ResultBrowserViewModel.FromResult(result, "正向计算");
         Check(view.HasTemperatureChart && view.TemperatureChart.Series.Count == 2, "01 temperature chart");
+        Check(view.HasTrajectoryDiagram && view.TrajectoryDiagram.Series.Count == 1, "01 trajectory diagram");
+        Check(view.TrajectoryDiagram.Series[0].Name == "目标 1", "trajectory grouped by object");
         Check(view.HasPointImages && view.SelectedPointImage.Image != null, "01 infrared image");
+    }
+
+    private static void TestTrajectoryImport(string root)
+    {
+        string run = Path.Combine(root, "run_trajectory_fixture"), output = Path.Combine(run, "output"); Directory.CreateDirectory(output);
+        File.WriteAllText(Path.Combine(output, "trajectory_history.csv"),
+            "case_id,frame_id,time_s,object_id,active_flag,released_flag,motion_stage,release_time_s,x_m,y_m,z_m,vx_m_s,vy_m_s,vz_m_s,speed_m_s,range_to_detector_m\n" +
+            "c,0,0,1,1,1,1,0,0,0,0,1,2,0,2.236,100\n" +
+            "c,1,1,1,1,1,1,0,1,2,0,1,2,0,2.236,98\n");
+        RunResult result = new ResultDirectoryLoader().Load(run);
+        ResultBrowserViewModel view = ResultBrowserViewModel.FromResult(result, "轨迹生成");
+        Check(result.ModuleType == ResultModuleType.Trajectory, "standalone trajectory directory recognition");
+        Check(view.HasTrajectoryDiagram && view.TrajectoryDiagram.Series.Single().Points.Count == 2, "standalone trajectory diagram");
+    }
+
+    private static void TestTrajectoryInputModes(string root)
+    {
+        string output = Path.Combine(root, "completed_forward", "output"); Directory.CreateDirectory(output);
+        File.WriteAllText(Path.Combine(output, "trajectory_history.csv"), "fixture");
+        using (var view = new ForwardRunViewModel(new TaskEditorViewModel()))
+        {
+            view.SelectedModule = "轨迹";
+            Check(view.IsTrajectory && !view.IsForward && view.ModuleTitle == "轨迹生成", "trajectory is independent from forward module");
+            Check(view.UseForwardTrajectory && view.TrajectoryInputModes.Length == 2, "latest forward trajectory is default input mode");
+            view.RunHistory.Add(new RunRecord { Module = "01", State = ProcessRunState.Completed, ResultDirectory = output });
+            Check(view.DefaultTrajectoryPath == Path.Combine(output, "trajectory_history.csv"), "latest forward trajectory path resolved");
+            view.TrajectoryInputMode = "读取外部轨迹文件";
+            Check(view.UseExternalTrajectory && !view.UseForwardTrajectory, "external trajectory input mode selectable");
+        }
     }
 
     private static void TestPrediction(string root)
@@ -74,6 +109,7 @@ internal static class Program
         Check(result.Temperatures.Count == 2, "03 reference/candidate TemperatureResult conversion");
         Check(view.TemperatureChart.Series.Count == 2 && view.TemperatureChart.Series.Any(x => x.Name == "Reference") && view.TemperatureChart.Series.Any(x => x.Name == "Candidate"), "03 dual temperature chart");
         Check(!view.HasPointImages, "03 image interface fallback");
+        Check(!view.HasTrajectoryDiagram && !String.IsNullOrWhiteSpace(view.TrajectoryEmptyMessage), "03 trajectory empty state");
     }
 
     private static void TestScene(string root)

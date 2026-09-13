@@ -79,6 +79,78 @@ namespace PreProcess.Wpf.ViewModels
         private static double Number(ResultRow row, string key) { double value; return TryNumber(row, key, out value) ? value : 0; }
     }
 
+    public sealed class TrajectoryDiagramViewModel
+    {
+        public TrajectoryDiagramViewModel()
+        {
+            Series = new List<ChartSeriesViewModel>();
+            XAxisTitle = "X / m";
+            YAxisTitle = "Y / m";
+        }
+
+        public string XAxisTitle { get; private set; }
+        public string YAxisTitle { get; private set; }
+        public IList<ChartSeriesViewModel> Series { get; private set; }
+        public bool HasData { get { return Series.Any(x => x.Points != null && x.Points.Count > 0); } }
+
+        public static TrajectoryDiagramViewModel From(IEnumerable<TrajectoryResult> results)
+        {
+            var diagram = new TrajectoryDiagramViewModel();
+            Color[] colors = { Colors.DodgerBlue, Colors.OrangeRed, Colors.SeaGreen, Colors.MediumPurple, Colors.Goldenrod, Colors.DeepPink, Colors.Teal, Colors.SlateBlue };
+            var rows = (results ?? Enumerable.Empty<TrajectoryResult>())
+                .SelectMany(result => result.Tables)
+                .Where(table => table.Columns.Any(column => column.Key == "x_m") && table.Columns.Any(column => column.Key == "y_m"))
+                .SelectMany(table => table.Rows)
+                .Select(row => ToTrajectoryPoint(row))
+                .Where(point => point != null)
+                .GroupBy(point => point.ObjectId, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var group in rows)
+            {
+                IList<ChartPointViewModel> points = group.OrderBy(point => point.Time)
+                    .Select(point => new ChartPointViewModel { X = point.X, Y = point.Y }).ToList();
+                if (points.Count == 0) continue;
+                diagram.Series.Add(new ChartSeriesViewModel
+                {
+                    Name = "目标 " + group.Key,
+                    Color = colors[diagram.Series.Count % colors.Length],
+                    Points = points
+                });
+            }
+            return diagram;
+        }
+
+        private static TrajectorySourcePoint ToTrajectoryPoint(ResultRow row)
+        {
+            double x, y, time;
+            if (!TryNumber(row, "x_m", out x) || !TryNumber(row, "y_m", out y)) return null;
+            if (!TryNumber(row, "time_s", out time)) time = 0;
+            object rawId;
+            string objectId = row.Values.TryGetValue("object_id", out rawId) && rawId != null
+                ? Convert.ToString(rawId, CultureInfo.InvariantCulture)
+                : "未编号";
+            return new TrajectorySourcePoint { ObjectId = objectId, Time = time, X = x, Y = y };
+        }
+
+        private static bool TryNumber(ResultRow row, string key, out double value)
+        {
+            object raw;
+            value = 0;
+            return row.Values.TryGetValue(key, out raw) && raw != null &&
+                Double.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+                !Double.IsNaN(value) && !Double.IsInfinity(value);
+        }
+
+        private sealed class TrajectorySourcePoint
+        {
+            public string ObjectId { get; set; }
+            public double Time { get; set; }
+            public double X { get; set; }
+            public double Y { get; set; }
+        }
+    }
+
     public sealed class PointImageViewModel
     {
         public string Name { get; private set; }

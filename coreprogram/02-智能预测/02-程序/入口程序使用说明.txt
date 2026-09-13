@@ -1,5 +1,5 @@
-02-智能预测统一入口使用说明
-==========================
+02-智能预测统一入口使用说明（v1.0.1-baseline）
+================================================
 
 正式入口：
     02-智能预测\02-程序\surrogate_prediction_runner.py
@@ -7,17 +7,56 @@
 正式输入：
     与01共用的 forward-request-v1 JSON。
 
+建议正式运行模式：
+    --mode both
+
 示例：
     cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明\02-智能预测\02-程序"
     python surrogate_prediction_runner.py --params-json "..\..\01-正向仿真\01-输入文件\forward_request_example.json" --mode both
 
-输出：
+任务输出：
     04-输出文件\runs\run_YYYYMMDD_HHMMSS_xxxxxxxx\
 
 每次调用自动创建新任务目录，不覆盖上一轮。
 04-输出文件\latest_run.json 指向最近一次任务。
 
+【v1.0.1新增：与01统一的响应output合同】
+------------------------------------------------
+成功运行后，当前任务目录下新增：
+
+    output\
+      temperature_history.csv
+      infrared_response_history.csv
+      output_contract.json
+      run_metadata.json
+      solver_status.txt
+
+当 --mode both 成功时，该 output\ 目录可以直接作为03的 candidate-run：
+
+    python similarity_evaluator.py --mode similarity ^
+      --reference-run "<01正式run目录>\output" ^
+      --candidate-run "<02任务run目录>\output"
+
+重要边界：
+1. “合同统一”不等于当前冻结代理模型已经具备01全部物理输出能力。
+2. 当前温度代理仅正式预测1号目标温度，因此 temperature_history.csv 中：
+       T_1      = 模型预测；
+       T_2~T_16 = 空值（不可用），不伪造。
+3. 当前点图像代理可形成：
+       detector_received_power_W
+       detector_irradiance_W_m2
+       screen_x_m / screen_y_m
+       in_screen_flag
+       range_to_detector_m
+4. 当前冻结02模型不能提供01正式合同中的：
+       radiation_power_W
+       radiant_intensity_W_sr
+   因而这两列保留为空值。03 v1.0.1+ 会把对应相似度分项标记为 invalid / 不参与综合相似度，
+   而不是错误地按0处理。
+5. 原 point_token_predictions.csv.gz 中 pred_spot_intensity 保留为模型原生诊断量，
+   不会改名成 radiant_intensity_W_sr。
+
+原生02预测文件仍保留在任务run根目录，用于模型诊断；03正式对接应使用 run_xxx\output\。
+
 Stage F 合同验证：
     python stage_f_run_point_image_candidate_evaluation_v1.py --validate-template-only
-
-合同验证不应产生 configs/figures/forward_runs/logs/manifests 等空目录。

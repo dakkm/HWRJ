@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="PreProcess.Wpf.Views.CalculationOutputView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:PreProcess.Wpf.Views">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="18">
+      <TextBlock Text="计算与输出" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <TextBlock Text="以下为五个模块的说明与参数预留区域。本阶段不执行计算，也不读取结果。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
+      <GroupBox Header="生成任务请求" Padding="10" Margin="0,8">
+        <StackPanel>
+          <TextBlock Text="正向计算与智能预测共享同一份任务请求。预测与场景搜索仍受后端固定场景限制；生成成功不代表满足预测适用条件。相似度评估使用结果文件。" TextWrapping="Wrap" />
+          <TextBlock Text="生成内容使用各页面已接受的有效输入；无效输入不会写入任务。" TextWrapping="Wrap" />
+          <Button Content="生成 request.json…" Click="GenerateRequest_Click" HorizontalAlignment="Left" Padding="12,6" Margin="0,8" />
+          <TextBlock x:Name="RequestStatus" TextWrapping="Wrap" />
+          <TextBlock Text="场景搜索温度相似度验收阈值（%）" Margin="0,8,0,0" />
+          <TextBox Text="{Binding Editor.Task.Settings.SimilarityIndex, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Padding="6" />
+          <TextBlock Text="此阈值保留为场景搜索验收条件，不写入正向请求。" TextWrapping="Wrap" />
+        </StackPanel>
+      </GroupBox>
+      <ItemsControl ItemsSource="{Binding Editor.Task.Calculation.Modules}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <GroupBox Header="{Binding Name}" Margin="0,10" Padding="10">
+              <StackPanel>
+                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+                <TextBlock Text="输入说明" FontWeight="SemiBold" Margin="0,12,0,4" />
+                <TextBlock Text="{Binding Input}" TextWrapping="Wrap" />
+                <TextBlock Text="输出说明" FontWeight="SemiBold" Margin="0,12,0,4" />
+                <TextBlock Text="{Binding Output}" TextWrapping="Wrap" />
+                <Border Background="#F5F8FC" Padding="12" Margin="0,12,0,0">
+                  <TextBlock Text="参数区域 · 后续完善" TextWrapping="Wrap" />
+                </Border>
+              </StackPanel>
+            </GroupBox>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

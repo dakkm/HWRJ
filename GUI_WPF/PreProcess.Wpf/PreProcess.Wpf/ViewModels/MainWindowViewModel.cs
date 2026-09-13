@@ -50,7 +50,7 @@ namespace PreProcess.Wpf.ViewModels
             var modules = AddGroup("功能模块", "选择要使用的功能模块。");
             Add(modules, "正向计算", "正向计算工作区域。");
             Add(modules, "智能预测", "智能预测工作区域。");
-            Add(modules, "轨迹生成", "轨迹生成工作区域。");
+            Add(modules, "轨迹生成", "选择外部或01默认轨迹并调用轨迹专用程序。");
             Add(modules, "相似度评估", "相似度评估工作区域。");
             Add(modules, "红外场景构建", "红外场景构建工作区域。");
             var runs = AddGroup("运行管理", "任务运行及输出的管理区域。");

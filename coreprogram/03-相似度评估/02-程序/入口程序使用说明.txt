@@ -1,14 +1,25 @@
-03-相似度评估统一入口使用说明
-============================
+03-相似度评估统一入口使用说明（v1.0.1-baseline）
+================================================
 
 正式入口：
     03-相似度评估\02-程序\similarity_evaluator.py
 
-特征提取：
-    python similarity_evaluator.py --mode features --run-dir "<01正式output目录>"
+03现在读取“统一响应output目录”，生产者可以是：
+1. 01正式正向仿真的 run_xxx\output\；
+2. 02 v1.0.1+ 智能预测任务的 run_xxx\output\。
 
-成对相似度：
-    python similarity_evaluator.py --mode similarity --reference-run "<参考output目录>" --candidate-run "<候选output目录>"
+特征提取：
+    python similarity_evaluator.py --mode features --run-dir "<响应output目录>"
+
+01结果 + 02结果相似度评价：
+    python similarity_evaluator.py --mode similarity ^
+      --reference-run "<01正式run>\output" ^
+      --candidate-run "<02正式run>\output"
+
+01结果 + 01结果仍然支持：
+    python similarity_evaluator.py --mode similarity ^
+      --reference-run "<参考01 run>\output" ^
+      --candidate-run "<候选01 run>\output"
 
 默认输出：
     03-输出文件\runs\run_YYYYMMDD_HHMMSS_xxxxxxxx\
@@ -16,8 +27,21 @@
 每次调用自动创建唯一任务目录。
 03-输出文件\latest_run.json 指向最近一次任务。
 
-如果使用：
-    --output-dir D:\somewhere
-该路径表示任务输出根目录，实际结果仍写入：
-    D:\somewhere\run_YYYYMMDD_HHMMSS_xxxxxxxx\
-因此不会覆盖前一轮。
+【02部分能力输出的处理规则】
+--------------------------------
+02当前无法提供 radiation_power_W 与 radiant_intensity_W_sr。
+02正式output仍保留与01相同的列名，但这两列为空。
+03不会把空值当0，而是：
+- scene_total_radiant_intensity        -> invalid / 不参与；
+- object_radiation_power               -> invalid / 不参与；
+- object_radiant_intensity             -> invalid / 不参与；
+- 依赖上述量的周期特征                 -> invalid / 不参与。
+
+仍正常参与的02可比较分项包括：
+- 1号目标温度水平与温度变化趋势；
+- detector_received_power_W；
+- detector_irradiance_W_m2 / peak pixel irradiance；
+- 接收屏质心/峰值/逐目标位置；
+- 对应有效时间序列趋势与可识别周期特征。
+
+综合相似度仍采用“有效分项中的最不利值”；无效分项不强制记0或100。

@@ -1,0 +1,26 @@
+{
+  "Scope": "P5 overall acceptance aggregation; existing evidence only, no tests rerun after the user requested continuation",
+  "Build": {
+    "NativeVs2019Release": "not available in this environment",
+    "EquivalentReleaseBuild": {
+      "status": "passed",
+      "errors": 0,
+      "warningDiagnostics": 0,
+      "output": "PreProcess.Wpf/bin/P5_AcceptanceRelease/PreProcess.Wpf.exe"
+    }
+  },
+  "TestGroups": [
+    { "name": "P4 regression suite", "passed": 268, "total": 268 },
+    { "name": "P5.1 ResultModelTest", "passed": 24, "total": 24 },
+    { "name": "P5.2 ResultReaderTest", "passed": 33, "total": 33 },
+    { "name": "P5.3 ResultViewTest", "passed": 25, "total": 25 },
+    { "name": "P5 GUI end-to-end closure", "passed": 10, "total": 10 }
+  ],
+  "Passed": 360,
+  "Total": 360,
+  "Failed": 0,
+  "Excluded": [
+    "Obsolete Test-Workbench.ps1: it asserts pre-P4/P5 placeholder UI semantics and is not part of the current P4 regression suite.",
+    "Failed long-path test-harness attempts: environmental MAX_PATH limitations before the same tests passed from a short artifact root."
+  ]
+}

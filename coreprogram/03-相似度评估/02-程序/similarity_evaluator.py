@@ -5,10 +5,12 @@ from __future__ import annotations
 Modes
 -----
 features:
-    One 01 run directory -> formal thermal/infrared feature products.
+    One forward-response output directory (01 or 02-compatible) -> formal
+    thermal/infrared feature products.
 similarity:
-    Reference 01 run + candidate 01 run -> feature products + component and
-    conservative aggregate similarity.
+    Reference/candidate forward-response output directories -> feature products
+    + component and conservative aggregate similarity.  A common chain is
+    reference=01 output and candidate=02 run_xxx/output.
 
 Compatibility
 -------------
@@ -148,11 +150,11 @@ def run_similarity(reference_run: Path, candidate_run: Path, output_dir: Path, c
 
 
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="03-相似度评估：01正式输出特征提取与成对相似度评价")
+    ap = argparse.ArgumentParser(description="03-相似度评估：01/02统一响应输出特征提取与成对相似度评价")
     ap.add_argument("--mode", choices=["features", "similarity"], required=True)
-    ap.add_argument("--run-dir", type=Path, help="features模式：单个01正式输出目录")
-    ap.add_argument("--reference-run", type=Path, help="similarity模式：参考01正式输出目录")
-    ap.add_argument("--candidate-run", type=Path, help="similarity模式：待评价01正式输出目录")
+    ap.add_argument("--run-dir", type=Path, help="features模式：单个响应output目录（01正式output或02 run_xxx/output）")
+    ap.add_argument("--reference-run", type=Path, help="similarity模式：参考响应output目录（通常为01正式output）")
+    ap.add_argument("--candidate-run", type=Path, help="similarity模式：待评价响应output目录（可为01 output或02 run_xxx/output）")
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     ap.add_argument(
         "--output-dir",

@@ -1,0 +1,23 @@
+﻿[
+    {
+        "Directory":  "coreprogram",
+        "Before":  119,
+        "After":  119,
+        "Changed":  0,
+        "Added":  0
+    },
+    {
+        "Directory":  "GUI_MFC_Legacy",
+        "Before":  1743,
+        "After":  1743,
+        "Changed":  0,
+        "Added":  0
+    },
+    {
+        "Directory":  ".docs",
+        "Before":  9,
+        "After":  9,
+        "Changed":  0,
+        "Added":  0
+    }
+]

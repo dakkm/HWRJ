@@ -1,0 +1,17 @@
+﻿{
+    "Module":  "01",
+    "RunId":  "run_20260912_065235_3529836d",
+    "RequestPath":  "C:\\Users\\1\\Documents\\Codex\\2026-09-12\\docs-00-project-brief-md-docs\\work\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\requests\\6ba0479bd1324416862a5e375b0cc71f\\request.json",
+    "BackendRequestPath":  "C:\\Users\\1\\Documents\\Codex\\2026-09-12\\docs-00-project-brief-md-docs\\work\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\runs\\run_20260912_065235_3529836d\\request.json",
+    "RunDirectory":  "C:\\Users\\1\\Documents\\Codex\\2026-09-12\\docs-00-project-brief-md-docs\\work\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\runs\\run_20260912_065235_3529836d",
+    "ResultDirectory":  "C:\\Users\\1\\Documents\\Codex\\2026-09-12\\docs-00-project-brief-md-docs\\work\\Pre-process\\GUI_WPF\\Verification\\P4_2\\ui-runtime\\runs\\run_20260912_065235_3529836d\\output",
+    "RuntimePackage":  null,
+    "StartedAt":  "\/Date(1789167154255)\/",
+    "EndedAt":  "\/Date(1789167156345)\/",
+    "State":  4,
+    "ExitCode":  0,
+    "PrepareOnly":  true,
+    "Message":  "输入准备完成（未执行求解）。",
+    "Diagnostic":  null,
+    "BackendStatus":  null
+}

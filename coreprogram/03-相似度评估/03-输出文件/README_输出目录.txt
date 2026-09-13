@@ -1,5 +1,5 @@
-03-相似度评估输出目录规范（run-based）
-======================================
+03-相似度评估输出目录规范（v1.0.1-baseline）
+================================================
 
 正式目录只保留：
 1. runs\
@@ -7,6 +7,10 @@
 2. latest_run.json
    指向最近一次评价任务。
 3. README_输出目录.txt
+
+输入响应目录可以来自01或02，只要包含统一核心合同：
+- temperature_history.csv
+- infrared_response_history.csv
 
 features 模式的 run 目录：
 - evaluation_request.json
@@ -23,4 +27,5 @@ similarity 模式另外包含：
 - similarity_components.csv
 - similarity_summary.json
 
---output-dir 现在表示“任务输出根目录”，程序仍会在其下自动创建唯一 run_xxx，避免覆盖。
+02当前无法提供的 source-radiation 字段会在 similarity_components.csv 中以 valid_flag=0 体现，
+不参与 minimum_valid_component 综合值。

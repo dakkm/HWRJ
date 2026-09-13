@@ -53,6 +53,14 @@
      </TextBlock>
     </Grid>
    </TabItem>
+   <TabItem Header="轨迹图">
+    <Grid>
+     <views:TrajectoryView Model="{Binding TrajectoryDiagram}" MinHeight="240" Visibility="{Binding HasTrajectoryDiagram, Converter={StaticResource Visible}}"/>
+     <TextBlock Text="{Binding TrajectoryEmptyMessage}" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource EmptyText}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasTrajectoryDiagram}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+     </TextBlock>
+    </Grid>
+   </TabItem>
    <TabItem Header="红外图像">
     <Grid>
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>

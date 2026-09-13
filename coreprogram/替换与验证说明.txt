@@ -1,0 +1,150 @@
+程序说明 v1.0.1-baseline：02/03统一响应输出合同补丁
+=====================================================
+
+一、补丁目的
+-----------
+v1.0.0中，03 similarity模式要求reference/candidate都是包含：
+    temperature_history.csv
+    infrared_response_history.csv
+的正式响应output目录。
+
+01具备该目录合同，但02只有代理模型原生预测文件，因此不能直接实现：
+    01真实结果 + 02预测结果 -> 03相似度评价
+
+本补丁修复该接口断点。
+
+二、修改文件
+-----------
+新增：
+    02-智能预测\02-程序\surrogate_forward_output_contract.py
+
+修改：
+    02-智能预测\02-程序\surrogate_prediction_runner.py
+    02-智能预测\02-程序\入口程序使用说明.txt
+    02-智能预测\04-输出文件\README_输出目录.txt
+
+    03-相似度评估\02-程序\response_feature_extractor.py
+    03-相似度评估\02-程序\similarity_evaluator.py
+    03-相似度评估\02-程序\入口程序使用说明.txt
+    03-相似度评估\03-输出文件\README_输出目录.txt
+
+    00-版本信息.json
+
+三、02成功后的新目录
+-----------------
+02-智能预测\04-输出文件\runs\run_xxx\
+    原生02预测文件...
+    output\
+        temperature_history.csv
+        infrared_response_history.csv
+        output_contract.json
+        run_metadata.json
+        solver_status.txt
+
+--mode both成功时，run_xxx\output可直接传给03的--candidate-run。
+
+四、能力边界
+-----------
+合同统一不代表当前冻结02模型已经复现01所有物理输出。
+
+1. 温度：
+   T_1 = ExtraTrees预测；
+   T_2~T_16 = 空值（当前模型不提供）。
+
+2. 红外：
+   detector_received_power_W = 点图像模型pred_spot_power（有效/已释放/在屏目标）
+   detector_irradiance_W_m2 = detector_received_power_W / 像元面积
+   screen_x_m/screen_y_m = 点图像模型预测位置
+   range_to_detector_m = 固定场景运行模板
+
+3. 当前不可用：
+   radiation_power_W
+   radiant_intensity_W_sr
+   两列保留为空。03 v1.0.1+ 将相关相似度分项标记invalid，不参与综合相似度。
+
+4. point_token_predictions.csv.gz中的pred_spot_intensity仍保留为模型原生输出，
+   不改名、不冒充radiant_intensity_W_sr。
+
+五、本地替换
+-----------
+建议保留已归档的v1.0.0不动，在工作副本上应用本补丁。
+
+将压缩包内容直接复制到：
+    C:\Users\PC\Desktop\新建文件夹\程序说明\
+并覆盖同名文件。
+
+六、语法检查
+-----------
+cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明"
+
+python -m py_compile "02-智能预测\02-程序\surrogate_prediction_runner.py"
+python -m py_compile "02-智能预测\02-程序\surrogate_forward_output_contract.py"
+python -m py_compile "03-相似度评估\02-程序\response_feature_extractor.py"
+python -m py_compile "03-相似度评估\02-程序\similarity_evaluator.py"
+
+四条命令均无输出即通过。
+
+七、02真实运行验证
+----------------
+cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明\02-智能预测\02-程序"
+
+python stage_f_run_point_image_candidate_evaluation_v1.py --validate-template-only
+
+python surrogate_prediction_runner.py ^
+  --params-json "..\..\01-正向仿真\01-输入文件\forward_request_example.json" ^
+  --mode both
+
+成功日志中应出现：
+    state = formal_output_completed
+    similarity_ready = true
+
+查看：
+    ..\04-输出文件\latest_run.json
+找到本轮run_dir，然后检查：
+    <run_dir>\output\temperature_history.csv
+    <run_dir>\output\infrared_response_history.csv
+    <run_dir>\output\output_contract.json
+
+八、03“01+02”真实评价验证
+-------------------------
+准备：
+    reference = 任一01正式run的output目录
+    candidate = 上一步02 run的output目录
+
+cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明\03-相似度评估\02-程序"
+
+python similarity_evaluator.py ^
+  --mode similarity ^
+  --reference-run "<01正式run>\output" ^
+  --candidate-run "<02正式run>\output"
+
+正常应：
+    status = success
+
+在03最新run的similarity_components.csv中：
+- scene_total_radiant_intensity       valid_flag=0（预期）
+- object_radiation_power              valid_flag=0（预期）
+- object_radiant_intensity            valid_flag=0（预期）
+- scene_total_received_power          valid_flag=1
+- scene_peak_irradiance               valid_flag=1
+- object_screen_position              valid_flag=1（存在成对在屏点时）
+- 温度分项                           valid_flag=1
+
+九、重新封板
+-----------
+补丁已将00-版本信息.json升级到v1.0.1-baseline。
+验证真实02->03链路成功后，在根目录执行：
+
+cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明"
+python freeze_release.py
+python verify_frozen_release.py
+
+应满足：
+    status = VERIFIED
+    missing_count = 0
+    mismatch_count = 0
+
+最后归档为：
+    程序说明_v1.0.1-baseline_20260912.zip
+
+不要覆盖已保存的v1.0.0-baseline归档。

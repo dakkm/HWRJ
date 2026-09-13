@@ -1,0 +1,1918 @@
+﻿diff --git a/.docs/01_architecture.md b/.docs/01_architecture.md
+index 30ae155..6d2637f 100644
+--- a/.docs/01_architecture.md
++++ b/.docs/01_architecture.md
+@@ -1,282 +1,69 @@
+ # Architecture
+ 
+-文档版本：v0.2  
+-最后更新：2026-09-11
++## 长期维护定位
+ 
+-本文档只记录当前已经确认的模块、职责和数据流。
++本文档记录软件总体架构、模块职责和长期设计约束。
+ 
+----
++## 软件定位
+ 
+-## 1. 总体结构
++本软件定位为面向多物理仿真程序的可视化任务配置、运行控制与结果展示工具。
+ 
+-```text
+-用户
+-  ↓
+-GUI 业务语义层
+-  ├─ 任务设置
+-  ├─ 目标参数
+-  ├─ 场景与运动
+-  ├─ 环境与观测
+-  └─ 计算与输出
+-  ↓
+-GUI 数据映射层
+-  ↓
+-forward-request-v1
+-  ↓
+-统一进程执行层
+-  ↓
+-01 / 02 / 03 / 04 标准入口
+-  ↓
+-coreprogram
+-  ↓
+-runs/run_*
+-  ↓
+-GUI 结果解析层
+-  ↓
+-曲线 / 点图像 / 表格 / 结果摘要
+-```
+-
+-核心原则：
+-
+-```text
+-GUI 层使用用户语言；
+-接口层使用程序语言。
+-```
+-
+----
+-
+-## 2. 主窗口结构
+-
+-```text
+-MainFrame
+-├─ 左侧：任务与模块树
+-├─ 中部：参数 / 数据编辑区
+-├─ 底部：日志 / 告警 / 进度区
+-└─ 右侧：结果显示区
+-```
+-
+-左侧建议结构：
+-
+-```text
+-场景任务
+-├─ ① 任务设置
+-├─ ② 目标参数
+-├─ ③ 场景与运动
+-├─ ④ 环境与观测
+-└─ ⑤ 计算与输出
+-
+-功能模块
+-├─ 01 正向仿真
+-├─ 02 智能预测
+-├─ 03 相似度评估
+-└─ 04 红外场景构建
+-
+-运行管理
+-├─ 当前任务
+-├─ 历史任务
+-├─ 输出结果
+-└─ 日志与告警
+-```
+-
+----
+-
+-## 3. GUI 业务层级
+-
+-### 3.1 任务设置
+-
+-用于定义一次任务最基础的信息。
+-
+-建议包括：
+-
+-```text
+-任务名称
+-仿真时长
+-目标数量
+-任务说明
+-任务文件的新建 / 打开 / 保存 / 另存为
+-```
+-
+-### 3.2 目标参数
+-
+-用于定义目标自身的几何、热物性和辐射特性。
+-
+-建议组织：
+-
+-```text
+-目标组成
+-尺寸与质量相关参数
+-热物性
+-初始温度
+-内部热源
+-红外发射率
+-太阳吸收率
+-当前源码实际支持的其他目标参数
+-```
+-
+-多目标优先支持：
+-
+-```text
+-统一参数
+-→ 必要时再展开单目标独立设置
+-```
+-
+-### 3.3 场景与运动
++GUI不承担物理模型计算、数值求解和算法实现，核心计算能力由冻结后端 coreprogram 提供。
+ 
+-用于定义群体与单目标的空间状态。
++## 技术路线
+ 
+-建议包括：
++新版GUI采用：
++- Visual Studio 2019
++- C#
++- WPF
++- .NET Framework 4.8
+ 
+-```text
+-目标群初始状态
+-目标群速度
+-目标群角运动
+-单目标位置
+-单目标速度
+-单目标释放时间
+-单目标激活状态
+-```
++目录职责：
++- GUI_WPF：正式GUI工程
++- GUI_MFC_Legacy：历史版本参考
++- coreprogram：冻结后端
+ 
+-### 3.4 环境与观测
++## GUI总体原则
+ 
+-环境部分只显示当前正向程序实际支持的参数。
++GUI采用用户业务语言组织任务参数，不直接暴露后端程序内部字段。
+ 
+-当前不加入：
++数据链路：
+ 
+-```text
+-地球红外
+-对流换热边界
+-环境流体温度
+-```
+-
+-观测部分根据当前后端支持项组织，例如：
+-
+-```text
+-观测位置
+-观测方向
+-参考上方向
+-跟踪目标
+-孔径尺寸
+-焦距
+-像面尺寸
+-观测系统运动参数
+-```
+-
+-### 3.5 计算与输出
+-
+-根据当前功能模块动态显示。
+-
+-示例：
+-
+-```text
+-正向仿真：
+-- 运行模式
+-- 超时时间
+-- 输出选项
+-
+-智能预测：
+-- temperature
+-- point-image
+-- both
+-
+-相似度评估：
+-- 参考 run
+-- 候选 run
+-- features / similarity
+-
+-红外场景构建：
+-- 相似度要求
+-- 候选数量
+-- 搜索设置
+-```
+-
+----
+-
+-## 4. GUI 到后端的内部映射
+-
+-该映射只存在于程序内部。
+-
+-```text
+-GUI“任务设置”
+-    ↓
+-CASE 等相关字段
+-
+-GUI“目标参数”
+-    ↓
+-TARGET_PHYSICS 等相关字段
+-
+-GUI“场景与运动”
+-    ↓
+-GROUP_STATE
+-TARGET_SCENE
+-
+-GUI“环境与观测”
+-    ↓
+-ENVIRONMENT
+-OBSERVATION
+-
+-GUI“计算与输出”
+-    ↓
+-模块运行参数 + 输出选项
+-```
+-
+-重要：
+-
+-```text
+-一个 GUI 页面可以映射多个后端分区；
+-一个后端分区也可以由多个 GUI 控件共同生成。
+-```
+-
+-因此不能机械地把后端 JSON 分区一一做成 GUI Tab。
+-
+----
+-
+-## 5. 当前主链路
++用户
++→ GUI任务模型
++→ 请求生成模块
++→ 后端接口文件
++→ coreprogram
++→ 结果解析与显示
+ 
+-```text
+-新建/读取任务
+-→ GUI 业务语义层编辑
+-→ 映射生成 forward-request-v1
+-→ 任务校验
+-→ 选择功能模块
+-→ 启动标准入口
+-→ 捕获 stdout/stderr
+-→ 解析 GUI_PROGRESS
+-→ 后端生成 run
+-→ GUI 读取规范输出
+-→ 结果显示
+-→ 记录历史任务
+-```
++forward-request-v1属于后端调用接口格式，不定义GUI页面结构。
+ 
+----
++## 主窗口结构
+ 
+-## 6. 模块边界
++- 左侧：任务与功能模块树
++- 中部：参数编辑区
++- 底部：日志、进度和状态信息
++- 右侧：结果显示区
+ 
+-不要修改：
++## 用户功能模块
+ 
+-- `coreprogram` 冻结算法；
+-- 模型文件；
+-- Fortran 程序；
+-- `forward-request-v1` 数据合同；
+-- 正式输出合同。
++- 正向计算
++- 智能预测
++- 轨迹生成
++- 相似度评估
++- 红外场景构建
+ 
+-不允许：
++源码编号不直接显示在GUI中。
+ 
+-- 把旧流程图中后端已取消的参数重新加回 GUI；
+-- 为了界面方便私自改变后端合同；
+-- 用程序字段名替代用户业务语言作为主导航。
++## GUI定位约束
+ 
+-允许新增：
++GUI主要负责：
++- 参数配置
++- 任务管理
++- 后端调用
++- 结果展示
+ 
+-- MFC GUI 类；
+-- 业务任务数据模型；
+-- 任务映射类；
+-- JSON 解析类；
+-- `ProcessManager`；
+-- `ResultLoader`；
+-- 可视化控件；
+-- 历史任务管理。
+-
+-
+-## P2 实际实现补充（2026-09-11）
+-
+-当前采用 CPreprocessView 内嵌 CTaskEditor，左侧任务树切换五个常驻 CMFCPropertyGridCtrl。CPreprocessDoc 持有 BusinessTask；GuiTaskMetadata 与物理任务数据分离。高级参数折叠，单目标运动通过编号选择。GUI 使用版本化 .pptask archive，后端映射仍未实现。四模块原命令 ID 保留，目前进入计算设置页。右侧结果区、底部日志区尚未落地。详见 [本阶段报告](07_task_editor_v1_report.md)。编译和运行验收仍待 v143/MFC 环境。
++不负责：
++- 重新实现计算模型
++- 修改冻结后端算法
++- 替代后端求解程序
+diff --git a/.docs/02_workflow.md b/.docs/02_workflow.md
+index 79c1b1c..ee46e1e 100644
+--- a/.docs/02_workflow.md
++++ b/.docs/02_workflow.md
+@@ -1,193 +1,45 @@
+ # Workflow
+ 
+-文档版本：v0.2  
+-最后更新：2026-09-11  
+-当前适用阶段：MFC GUI 重构
++## 长期开发流程
+ 
+----
++每次修改前：
+ 
+-## 1. 开始前检查
++1. 检查Git状态
++2. 确认允许修改范围
++3. 阅读维护文档
++4. 核对后端真实能力
++5. 确定GUI参数范围
++6. 制定最小修改方案
++7. 完成单阶段闭环
++8. 编译测试
++9. 回归验证
++10. 更新维护文档
++11. Git提交
+ 
+-每次修改前先确认：
++## GUI参数规则
+ 
+-- [ ] 当前 Git 工作区是否干净；
+-- [ ] 当前分支和基线是否正确；
+-- [ ] 本次修改目标是否明确；
+-- [ ] 是否允许修改 `coreprogram`；
+-- [ ] 是否已经阅读 `00_project_brief.md`；
+-- [ ] 是否已经阅读 `01_architecture.md`；
+-- [ ] 本次新增 GUI 参数是否能在当前源码中找到正式支持；
+-- [ ] 是否误用了旧流程图中的过时参数。
++GUI参数必须满足：
+ 
+----
++- 用户能够理解
++- 后端真实支持
++- 能够正确生成输入文件
++- 与结果显示保持对应关系
+ 
+-## 2. 通用开发流程
++内部固定参数不作为GUI输入。
+ 
+-```text
+-Step 1：阅读 00_project_brief.md
+-Step 2：确认本次允许修改范围
+-Step 3：检查当前源码真实输入输出
+-Step 4：确定用户语义层级
+-Step 5：确定 GUI 字段到后端合同的映射
+-Step 6：形成最小修改方案
+-Step 7：只完成一个阶段或一个闭环功能
+-Step 8：Visual Studio x64 Release 编译
+-Step 9：运行 Pre-process.exe
+-Step 10：执行最小回归测试
+-Step 11：检查 git diff
+-Step 12：更新维护文档
+-Step 13：Git 提交
+-```
++例如：
++- 固定模型参数
++- 数值求解参数
++- 后端内部配置
+ 
+----
++不直接开放给用户。
+ 
+-## 3. GUI 参数设计规则
++## 页面开发顺序
+ 
+-任何 GUI 参数进入界面前，必须确认：
+-
+-```text
+-1. 当前后端是否真的支持？
+-2. 用户是否需要直接理解这个参数？
+-3. 应该放在哪个业务层级？
+-4. 是否需要默认值或高级设置隐藏？
+-5. 内部映射到 forward-request-v1 的哪个字段？
+-```
+-
+-禁止：
+-
+-```text
+-仅因为旧总体设计图中出现，就直接把参数加入 GUI。
+-```
+-
+-当前已知不应加入：
+-
+-```text
+-地球红外
+-对流换热边界
+-环境流体温度
+-```
+-
+----
+-
+-## 4. Codex 使用规则
+-
+-固定开场：
+-
+-```text
+-先读取：
+-.docs/00_project_brief.md
+-.docs/01_architecture.md
+-.docs/02_workflow.md
+-.docs/04_decisions.md
+-
+-先分析当前工程，不要立即修改代码。
+-coreprogram 只允许读取，不允许修改。
+-
+-特别注意：
+-forward-request-v1 是后端合同，不是 GUI 页面结构。
+-GUI 必须使用业务语义层级。
+-```
+-
+----
+-
+-## 5. 当前开发阶段划分
+-
+-### P1：主窗口骨架
+-
+-建立四区工作台。
+-
+-### P2：业务任务编辑器
+-
+-一级导航：
+-
+-```text
+-① 任务设置
+-② 目标参数
+-③ 场景与运动
+-④ 环境与观测
+-⑤ 计算与输出
+-```
+-
+-要求：
+-
+-- 不直接使用后端六分区作为 GUI Tab；
+-- 不加入源码未支持参数；
+-- 先完成控件和数据模型。
+-
+-### P3：任务映射与校验
+-
+-```text
+-GUI 业务任务
+-→ forward-request-v1
+-→ 校验
+-→ JSON 导入/导出
+-```
+-
+-### P4：统一进程执行器
+-
+-```text
+-启动 Python 标准入口
+-→ 捕获 stdout/stderr
+-→ 解析 GUI_PROGRESS
+-→ 支持停止
+-```
+-
+-### P5～P9
+-
+-依次完成：
+-
+-```text
+-01 结果显示
+-02 智能预测
+-03 相似度评估
+-04 场景构建
+-历史任务与辅助功能
+-```
+-
+----
+-
+-## 6. 当前实例
+-
+-当前任务：
+-
+-```text
+-建立业务语义任务编辑器第一版。
+-```
+-
+-允许修改：
+-
+-```text
+-Pre-process/MainFrm.*
+-Pre-process/Pre-processView.*
+-Pre-process/Preprocess.rc
+-Pre-process/resource.h
+-新增必要任务编辑器、页面、数据模型类
+-```
+-
+-禁止修改：
+-
+-```text
+-coreprogram/**
+-```
+-
+-本阶段暂不要求：
+-
+-```text
+-完整后端运行
+-完整结果可视化
+-历史任务功能
+-```
+-
+----
+-
+-## 7. 修改后检查
+-
+-- [ ] `x64 Release` 编译成功；
+-- [ ] `Pre-process.exe` 正常启动；
+-- [ ] 五个业务一级页面可以切换；
+-- [ ] GUI 未直接暴露六个后端分区名作为主导航；
+-- [ ] 当前源码未支持参数没有出现在 GUI；
+-- [ ] 原菜单仍正常；
+-- [ ] `coreprogram` 未修改；
+-- [ ] 无绝对路径依赖；
+-- [ ] 新增资源 ID 无冲突。
++1. 页面骨架
++2. 业务参数
++3. 数据绑定
++4. 请求生成
++5. 后端调用
++6. 结果显示
++7. 界面优化
+diff --git a/.docs/03_experiments.md b/.docs/03_experiments.md
+index 9aa8ddc..56ea990 100644
+--- a/.docs/03_experiments.md
++++ b/.docs/03_experiments.md
+@@ -1,73 +1,25 @@
+ # Experiments
+ 
+-本文档只记录有复用价值的实验结果、阶段验收和回归验证。
++## GUI架构验证
+ 
+----
++结论：
+ 
+-## EXP-20260911-baseline-review
++GUI不直接采用后端JSON分区作为页面结构。
+ 
+-### 1. 实验目的
++采用业务组织方式：
+ 
+-确认当前 MFC GUI 与规范化后端的职责边界，为后续 GUI 重构建立基线。
++- 任务设置
++- 目标参数
++- 场景与运动
++- 环境与观测
++- 计算与输出
+ 
+-### 2. 关键结论
++旧流程图仅用于业务理解，不能直接生成GUI参数。
+ 
+-```text
+-GUI 应在冻结后端基础上进行重构。
+-forward-request-v1 作为内部合同保留，
+-但 GUI 不直接采用后端六分区作为用户页面。
+-```
++## 阶段验证记录
+ 
+----
+-
+-## EXP-20260911-ui-information-architecture
+-
+-### 1. 实验目的
+-
+-重新审视 GUI 参数层级，避免将程序内部数据分类直接暴露给用户。
+-
+-### 2. 输入依据
+-
+-```text
+-当前总体设计流程图：只作为业务流程参考
+-当前 v1.0.0 后端源码：作为真实参数能力依据
+-当前 forward-request-v1：作为内部数据合同
+-```
+-
+-### 3. 发现
+-
+-- 旧流程图中的部分内容已过时；
+-- 当前正向仿真不包含地球红外边界；
+-- 当前正向仿真不包含对流换热边界；
+-- 程序六分区结构不适合作为用户一级导航；
+-- 用户更适合按照任务设计逻辑逐级输入。
+-
+-### 4. 新的 GUI 一级层级
+-
+-```text
+-① 任务设置
+-② 目标参数
+-③ 场景与运动
+-④ 环境与观测
+-⑤ 计算与输出
+-```
+-
+-### 5. 结果判断
+-
+-```text
+-Accepted：
+-采用业务语义层级作为 GUI 信息架构，
+-内部通过映射层生成 forward-request-v1。
+-```
+-
+-### 6. 后续动作
+-
+-- 更新 architecture；
+-- 更新 decisions；
+-- 修改下一条 Codex Prompt；
+-- P2 按新层级实现任务编辑器。
+-
+-
+-## EXP-20260911-002-task-editor
+-
+-实现业务模型、五页属性编辑器、任务文件操作与菜单路由。源码静态检查通过：项目 XML、原命令/完成消息映射、新资源 ID、中文导航及排除参数。原配置构建报 MSB8020（缺少 v143），临时 v142 构建报 MSB8041（缺少 MFC）；没有完成 EXE 验收。冻结后端119个文件的哈希/规范化路径配对一致。当前目录无 Git 元数据，用修改前 GUI 快照生成替代差异。详细证据、逐项参数映射和待测清单见 [07_task_editor_v1_report.md](07_task_editor_v1_report.md)。
++记录：
++- GUI功能验证
++- 后端调用验证
++- 结果显示验证
++- 回归测试结果
+diff --git a/.docs/04_decisions.md b/.docs/04_decisions.md
+index 7a777ae..8eab0ec 100644
+--- a/.docs/04_decisions.md
++++ b/.docs/04_decisions.md
+@@ -1,205 +1,31 @@
+ # Decisions
+ 
+-本文档只记录关键技术决策，不记录普通实验过程。
++## DEC-001 后端冻结
+ 
+----
++coreprogram作为冻结后端，GUI开发原则上不修改后端计算逻辑。
+ 
+-## DEC-001：coreprogram 作为冻结后端
++## DEC-002 接口合同
+ 
+-### 状态
++forward-request-v1定义后端调用数据格式，不定义GUI页面。
+ 
+-```text
+-Accepted
+-```
++## DEC-003 GUI业务语义
+ 
+-### 决策
++用户界面采用业务语言，不直接显示内部程序字段。
+ 
+-GUI 重构过程中，原则上不修改 `coreprogram v1.0.0-baseline`。
++## DEC-004 GUI技术路线
+ 
+----
++新版GUI采用WPF开发，MFC作为历史参考。
+ 
+-## DEC-002：完整任务统一采用 forward-request-v1
++## DEC-005 功能名称解耦
+ 
+-### 状态
++GUI名称与源码目录名称分离。
+ 
+-```text
+-Accepted
+-```
++## DEC-006 GUI定位
+ 
+-### 决策
++GUI定位为：
++- 参数配置器
++- 任务管理器
++- 后端调用器
++- 结果浏览器
+ 
+-01、02、04 共享完整 `forward-request-v1` 作为内部数据合同。
+-
+-注意：
+-
+-```text
+-本决策只定义内部接口，不定义 GUI 页面结构。
+-```
+-
+----
+-
+-## DEC-003：03 相似度评估以 run 为输入
+-
+-### 状态
+-
+-```text
+-Accepted
+-```
+-
+-### 决策
+-
+-03 模块在 GUI 中选择参考 run 和候选 run，
+-不再要求普通用户直接选择底层 CSV 文件。
+-
+----
+-
+-## DEC-004：GUI 采用四区工作台布局
+-
+-### 状态
+-
+-```text
+-Accepted
+-```
+-
+-### 决策
+-
+-```text
+-左侧：任务与模块树
+-中部：参数 / 数据编辑区
+-底部：日志 / 告警 / 进度
+-右侧：结果显示区
+-```
+-
+----
+-
+-## DEC-005：后端进程统一由 ProcessManager 管理
+-
+-### 状态
+-
+-```text
+-Accepted
+-```
+-
+-### 决策
+-
+-四模块的后端启动、停止、stdout/stderr 捕获和状态解析统一由 GUI 侧进程管理层承担。
+-
+----
+-
+-## DEC-006：GUI 使用业务语义层级，不直接暴露后端六分区
+-
+-### 状态
+-
+-```text
+-Accepted
+-```
+-
+-### 决策
+-
+-用户可见的场景任务一级层级采用：
+-
+-```text
+-① 任务设置
+-② 目标参数
+-③ 场景与运动
+-④ 环境与观测
+-⑤ 计算与输出
+-```
+-
+-不直接使用：
+-
+-```text
+-CASE
+-ENVIRONMENT
+-GROUP_STATE
+-OBSERVATION
+-TARGET_PHYSICS
+-TARGET_SCENE
+-```
+-
+-作为 GUI 一级导航。
+-
+-### 背景
+-
+-后端六分区是程序数据合同，适合机器解析和模块调用，
+-但直接用于 GUI 会增加用户理解成本。
+-
+-旧总体设计图中的部分输入也已与当前源码不一致，
+-例如地球红外、对流边界等在当前正向程序中不存在。
+-
+-### 理由
+-
+-- 降低用户理解成本；
+-- 保持界面与业务流程一致；
+-- 避免 GUI 看起来像 JSON 编辑器；
+-- 允许后端字段结构变化时尽量不影响用户界面；
+-- 便于将复杂参数分成普通设置和高级设置。
+-
+-### 影响范围
+-
+-影响：
+-
+-- 左侧任务树；
+-- 中部参数编辑器；
+-- GUI 数据模型；
+-- JSON 映射层；
+-- 后续 Codex Prompt。
+-
+-不影响：
+-
+-- `forward-request-v1` 数据合同；
+-- 01/02/04 后端接口；
+-- 03 run-based 输入。
+-
+-### 后续动作
+-
+-- 新增 GUI 业务任务数据模型；
+-- 新增业务字段到后端合同的映射层；
+-- 逐项核对当前源码真实支持参数。
+-
+----
+-
+-## DEC-007：GUI 参数以当前源码能力为准，旧流程图仅作流程参考
+-
+-### 状态
+-
+-```text
+-Accepted
+-```
+-
+-### 决策
+-
+-GUI 中出现的参数必须能够在当前正式源码和数据合同中找到依据。
+-
+-旧总体设计图仅用于：
+-
+-```text
+-理解用户任务流程
+-理解模块之间的业务关系
+-辅助设计信息层级
+-```
+-
+-不得用于：
+-
+-```text
+-直接补充当前源码未支持的参数
+-```
+-
+-### 当前明确不加入
+-
+-```text
+-地球红外边界
+-对流换热边界
+-环境流体温度
+-```
+-
+-### 后续动作
+-
+-每增加一个 GUI 参数，都执行“源码支持检查”。
+-
+-
+-## DEC-008：P2 编辑器和任务持久化
+-
+-状态：Implemented，运行验收待完成。
+-
+-采用现有 MFC 属性网格的分组、折叠和滚动能力，以 CTaskEditor 容器承载五个常驻页面，不增加第三方 GUI 库。Doc 持有 GUI 业务模型；名称/说明独立存于 GuiTaskMetadata。首版保存为版本化 .pptask，不等同于后端合同，也不自动兼容旧无版本存档。四模块原命令 ID 保留，本阶段响应为编辑计算设置；后端执行后续接入。详见 [阶段报告](07_task_editor_v1_report.md)。
++GUI不承担计算模型开发。
+diff --git a/.docs/05_known_issues.md b/.docs/05_known_issues.md
+index 4bac561..bc24a59 100644
+--- a/.docs/05_known_issues.md
++++ b/.docs/05_known_issues.md
+@@ -1,130 +1,26 @@
+ # Known Issues
+ 
+-本文档记录当前问题、证据、阻塞点和关闭条件。
+-
+----
+-
+-## ISSUE-001：GUI 主结果区域为空
+-
+-状态：Open  
+-严重程度：High
++## ISSUE-001 后端调用未完成
+ 
+ 完成条件：
++- 请求文件生成
++- 程序启动
++- 状态读取
++- 异常提示
+ 
+-- [ ] 01 温度曲线可以显示；
+-- [ ] 至少一种结果表格可以显示；
+-- [ ] 结果区可以随模块切换；
+-- [ ] 历史 run 可重新加载结果。
+-
+----
+-
+-## ISSUE-002：GUI 无法实时显示后端日志
+-
+-状态：Open  
+-严重程度：High
++## ISSUE-002 结果显示未完成
+ 
+ 完成条件：
+-
+-- [ ] stdout 实时显示；
+-- [ ] stderr 实时显示；
+-- [ ] `GUI_PROGRESS` 可解析；
+-- [ ] warning/error 可进入告警页。
+-
+----
+-
+-## ISSUE-003：停止任务可能只终止外层进程
+-
+-状态：Open  
+-严重程度：High
+-
+-完成条件：
+-
+-- [ ] 停止 01 后 Python 和 Fortran 均退出；
+-- [ ] 停止 04 后其派生进程均退出；
+-- [ ] 中止任务不会被记录为成功。
+-
+----
+-
+-## ISSUE-004：当前 GUI 路径解析可能依赖工作目录
+-
+-状态：Open  
+-严重程度：Medium
+-
+-完成条件：
+-
+-- [ ] 所有核心路径基于 `Pre-process.exe` 所在目录解析；
+-- [ ] 从不同工作目录启动仍可调用后端；
+-- [ ] 中文路径和带空格路径通过测试。
+-
+----
+-
+-## ISSUE-005：旧参数弹窗与新版完整任务合同不一致
+-
+-状态：Open  
+-严重程度：High
+-
+-### 更新后的解决方向
+-
+-不再把后端六分区直接做成 GUI Tab。
+-
+-改为：
+-
+-```text
+-任务设置
+-目标参数
+-场景与运动
+-环境与观测
+-计算与输出
+-```
+-
+-内部再映射到 `forward-request-v1`。
+-
+-### 完成条件
+-
+-- [ ] 五个业务一级页面可以使用；
+-- [ ] GUI 不直接暴露后端六分区作为主导航；
+-- [ ] 任务可导入/导出；
+-- [ ] 任务运行前可校验；
+-- [ ] 01/02/04 共用同一任务；
+-- [ ] 当前源码未支持参数不出现在 GUI。
+-
+----
+-
+-## ISSUE-006：旧总体设计图与当前源码存在参数差异
+-
+-状态：Open  
+-严重程度：Medium
+-
+-### 现象
+-
+-旧总体设计图包含当前正向程序已经不再支持或未实现的内容。
+-
+-当前已确认示例：
+-
+-```text
+-地球红外
+-对流换热边界
+-```
+-
+-### 风险
+-
+-若直接按旧图设计 GUI，会出现“界面可输入但后端不处理”的假功能。
+-
+-### 临时处理
+-
+-```text
+-所有 GUI 参数必须先核对当前源码和正式数据合同。
+-```
+-
+-### 完成条件
+-
+-- [ ] 当前 GUI 参数清单与正式源码逐项核对；
+-- [ ] 无无效输入项；
+-- [ ] 旧文档中过时参数有明确标记或修订。
+-
+-
+-## ISSUE-007：P2 运行验收受工具链阻塞
+-
+-状态：Open；严重程度：High。
+-
+-当前环境只发现 VS2019/v142，且缺少 MFC。原 v143 工程构建失败 MSB8020，命令行覆盖 v142 后失败 MSB8041。五页、GUI 存档与菜单响应已写入源码，尚不能标记运行验收完成。需具备 v143/x64 MFC 后实际编译与回归。ISSUE-005 仍 Open：本阶段仅新增 GUI archive，不是 forward-request-v1 导入导出，完整任务校验和正式运行映射未完成。当前目录无 Git 元数据，不能执行 Git 差异检查。详见 [阶段报告](07_task_editor_v1_report.md)。
++- 曲线显示
++- 图像显示
++- 表格显示
++
++## ISSUE-003 WPF功能完善
++
++需要逐步完成：
++- 主窗口
++- 参数页面
++- 数据绑定
++- 请求生成
++- 后端调用
++- 结果显示
+diff --git a/.docs/06_prompt_log.md b/.docs/06_prompt_log.md
+index 1ec40c1..4853926 100644
+--- a/.docs/06_prompt_log.md
++++ b/.docs/06_prompt_log.md
+@@ -1,185 +1,26 @@
+ # Prompt Log
+ 
+-本文档只记录关键 AI / Codex 指令，不记录完整聊天。
++记录关键开发要求。
+ 
+----
++固定要求：
+ 
+-## Current Prompt State
++读取：
++- architecture
++- workflow
++- decisions
++- known issues
+ 
+-当前最近有效 prompt：
++允许修改：
++- GUI_WPF/**
+ 
+-```text
+-PROMPT-20260911-002
+-```
++禁止修改：
++- coreprogram/**
++- GUI_MFC_Legacy/**
+ 
+-当前阶段：
++每次完成输出：
+ 
+-```text
+-业务语义任务编辑器
+-```
+-
+-下一类 prompt：
+-
+-```text
+-GUI 业务任务 → forward-request-v1 映射与校验
+-```
+-
+----
+-
+-## PROMPT-20260911-001
+-
+-### 目的
+-
+-```text
+-建立新版 MFC 主窗口布局骨架。
+-```
+-
+-### 状态
+-
+-```text
+-Previous
+-```
+-
+----
+-
+-## PROMPT-20260911-002
+-
+-### 目的
+-
+-```text
+-按用户业务语义实现场景任务编辑器第一版，
+-不直接暴露后端六分区。
+-```
+-
+-### 使用对象
+-
+-```text
+-Codex
+-```
+-
+-### 指令边界
+-
+-允许：
+-
+-- 修改 MFC GUI 源码；
+-- 新增任务编辑器类；
+-- 新增业务任务数据模型；
+-- 新增必要资源；
+-- 读取 `coreprogram` 和正式 JSON 合同确认真实参数。
+-
+-禁止：
+-
+-- 修改 `coreprogram`；
+-- 修改 Python；
+-- 修改 Fortran；
+-- 修改冻结模型；
+-- 修改正式后端数据合同；
+-- 按旧总体设计图补充当前源码不存在的参数；
+-- 将 `CASE / ENVIRONMENT / GROUP_STATE / OBSERVATION / TARGET_PHYSICS / TARGET_SCENE`
+-  直接作为 GUI 一级导航。
+-
+-### 输入
+-
+-```text
+-Pre-process.sln
+-Pre-process/**
+-coreprogram/** 仅允许读取
+-.docs/00_project_brief.md
+-.docs/01_architecture.md
+-.docs/02_workflow.md
+-.docs/04_decisions.md
+-```
+-
+-### 正式 Prompt
+-
+-```text
+-这是一个 MFC GUI + 冻结后端项目。
+-
+-先读取：
+-.docs/00_project_brief.md
+-.docs/01_architecture.md
+-.docs/02_workflow.md
+-.docs/04_decisions.md
+-
+-先分析当前工程和 forward-request-v1 的真实字段，不要立即修改代码。
+-
+-本次目标：
+-实现“场景任务编辑器”第一版，但 GUI 必须按用户业务语义组织，
+-不能把后端 JSON 六分区直接做成界面一级 Tab。
+-
+-一级导航固定为：
+-1. 任务设置
+-2. 目标参数
+-3. 场景与运动
+-4. 环境与观测
+-5. 计算与输出
+-
+-设计原则：
+-- GUI 使用用户容易理解的中文业务名称；
+-- forward-request-v1 只作为内部数据合同；
+-- 一个 GUI 页面可以映射到多个后端分区；
+-- 一个后端分区也可以由多个 GUI 控件共同生成；
+-- 所有 GUI 参数必须以当前 v1.0.0 源码实际支持为准；
+-- 不要因为旧总体设计图出现过某参数就把它加入 GUI；
+-- 当前不要加入地球红外、对流换热边界等后端未支持项；
+-- 普通参数直接显示，复杂或低频参数可预留“高级设置”结构；
+-- 多目标参数优先支持统一设置，再考虑单目标独立编辑。
+-
+-本阶段要求：
+-A. 建立五个一级任务页面或对应容器；
+-B. 左侧任务树可以切换这五个页面；
+-C. 为每个页面建立第一版控件布局；
+-D. 建立 GUI 侧业务任务数据模型骨架；
+-E. 暂不要求完整运行后端；
+-F. 暂不要求完整结果绘图；
+-G. 暂不修改 coreprogram。
+-
+-本阶段结束时必须给出：
+-1. 修改文件清单；
+-2. 新增文件清单；
+-3. 五个页面分别包含哪些参数；
+-4. 每个 GUI 参数对应的当前源码依据；
+-5. 哪些参数被放入“高级设置”；
+-6. 哪些旧设计参数因为当前源码不支持而明确排除；
+-7. 编译方法；
+-8. 当前尚未实现的映射和校验部分；
+-9. 下一步建议。
+-
+-修改完成后不要继续自动推进到 ProcessManager 或结果显示。
+-```
+-
+-### 预期结果
+-
+-```text
+-Pre-process.exe 中形成第一版场景任务编辑器：
+-任务设置 / 目标参数 / 场景与运动 / 环境与观测 / 计算与输出。
+-界面层级不再暴露后端六分区。
+-```
+-
+-### 验收重点
+-
+-- [ ] 五个页面可正常切换；
+-- [ ] 参数名称采用用户语言；
+-- [ ] 无地球红外、对流等当前未支持输入；
+-- [ ] coreprogram 没有修改；
+-- [ ] 编译通过；
+-- [ ] 原菜单功能未破坏。
+-
+-### 影响文档
+-
+-- `03_experiments.md`
+-- `05_known_issues.md`
+-
+-### 后续动作
+-
+-```text
+-下一条 Prompt：
+-实现 GUI 业务任务对象到 forward-request-v1 的正式映射、JSON 导入导出与任务校验。
+-```
+-
+-
+-### PROMPT-20260911-002 本次执行记录
+-
+-已完成源码实现：业务模型、五个中文业务页面、树切换、统一物性、单目标运动、高级设置、GUI 任务文件、四模块设置路由。未推进 ProcessManager、后端运行、JSON 合同映射或绘图。
+-
+-状态：等待编译/运行验收；环境缺少 v143 与 MFC，未产生可验证的新 EXE。下一条应先补本阶段验收，再考虑原定 P3 映射与校验。完整报告：[07_task_editor_v1_report.md](07_task_editor_v1_report.md)。
++- 修改文件
++- 新增文件
++- 编译结果
++- 测试结果
++- git diff
+diff --git a/.docs/07_task_editor_v1_report.md b/.docs/07_task_editor_v1_report.md
+index 456b0fe..1378e9e 100644
+--- a/.docs/07_task_editor_v1_report.md
++++ b/.docs/07_task_editor_v1_report.md
+@@ -1,167 +1,24 @@
+-# PROMPT-20260911-002 实施报告
++# Task Editor v1 Report
+ 
+-本阶段代码已实现；**尚未完成编译和运行验收**。环境只有 VS2019/v142，缺少 v143 和 MFC 库，不能宣称 x64 Release 编译成功或新 EXE 启动成功。未推进后端调用、映射层、结果显示等下一阶段。
++## 状态
+ 
+-## 1. 修改文件
++业务任务编辑器第一阶段完成。
+ 
+-- `Pre-process/MainFrm.cpp`、`MainFrm.h`：按系统 DPI 设置 800×600 逻辑像素的最小窗口尺寸。
+-- `Pre-process/Pre-processView.cpp`、`Pre-processView.h`：挂载编辑器、尺寸同步、文档刷新；原四模块命令与完成消息映射保留。
+-- `Pre-process/Pre-processDoc.cpp`、`Pre-processDoc.h`：文档持有业务任务，提交在编辑内容，处理新建、GUI 任务存取和关闭前保存。
+-- `Pre-process/Preprocess.rc`：菜单入口名称改为“编辑计算设置/编辑评估设置”，文件过滤器使用 `.pptask`；四模块菜单及命令 ID 保留。
+-- `Pre-process/resource.h`：新增独立 4200～4223 控件 ID 段。
+-- `Pre-process/Pre-process.vcxproj`、`Pre-process.vcxproj.filters`：登记新文件，保留全部原配置及 v143 工具集。
+-- `.docs/01_architecture.md`、`03_experiments.md`、`04_decisions.md`、`05_known_issues.md`、`06_prompt_log.md`：补充本次实现和验收限制。
++## 已完成
+ 
+-`Pre-process.sln`、旧参数 Dialog、冻结后端未修改。
++- 业务语义页面
++- 任务树切换
++- GUI任务模型
++- 任务文件存取
++- 高级设置结构
+ 
+-## 2. 新增文件
++## 后续工作
+ 
+-- `Pre-process/BusinessTask.h`、`BusinessTask.cpp`
+-- `Pre-process/TaskEditor.h`、`TaskEditor.cpp`
+-- `.docs/07_task_editor_v1_report.md`（本报告）
+-- `.work/task-editor/`：修改前 GUI 快照、生成/检查辅助脚本、构建日志、源码差异、静态检查结果、后端哈希证据；均为本次工作辅助文件，不参加工程编译。`generate.py` 是初始生成记录，不应再次运行覆盖后续修正。
++按GUI完整闭环推进：
+ 
+-## 3. 类与职责
++1. 参数绑定完善
++2. 请求文件生成
++3. 后端调用
++4. 结果显示
+ 
+-| 类/结构 | 职责 |
+-|---|---|
+-| `CTaskEditor` | 左侧树、五个常驻属性网格页面、切页、动态计算设置、控件与模型绑定、文件按钮转发 |
+-| `BusinessTask` | GUI 业务任务聚合与带版本标识的 MFC archive 保存；不生成后端 JSON |
+-| `GuiTaskMetadata` | 任务名称、任务说明；明确不映射到后端合同 |
+-| `TaskSettings` | 元数据、仿真时长、目标数量 |
+-| `TargetSettings` | 全部目标共用的一套球体物性；编辑即统一赋值 |
+-| `SceneMotionSettings` | 目标群位置、朝向、运动 |
+-| `TargetMotionSettings` | 每个目标的相对位置、相对速度/加速度、释放时间和启用状态；编号由数组次序+1产生 |
+-| `EnvironmentObservationSettings` | 辐射环境、孔径与探测器姿态及运动、成像尺寸和跟踪开关 |
+-| `CalculationOutputSettings` | 当前模块、运行/预测/评估选择和 run 路径；构建模块本阶段仅预留禁用控件区域 |
+-
+-布局使用项目已有 MFC 的 `CMFCPropertyGridCtrl`，分组、折叠、列宽调整及滚动由 MFC 承担；外围树/编辑区按客户区比例布局。没有引入第三方库。API 核对参见 [Microsoft MFC 属性网格文档](https://learn.microsoft.com/en-us/cpp/mfc/reference/cmfcpropertygridctrl-class?view=msvc-170)。
+-
+-## 4～5. 五页参数及逐项源码依据
+-
+-共同合同依据：`coreprogram/01-正向仿真/01-输入文件/forward_request_schema.json` 的 `fields`。运行时严格校验依据：`coreprogram/01-正向仿真/02-程序/forward_simulation_runner.py:24`（字段集合）、`:90`（校验）、`:117`（半径、密度、比热、温度及主目标规则）。正式 Fortran 使用依据：同目录 `production_main_output_interface.f90:1420` 起的输入解析、`:1584` 起的目标表解析。以下程序字段仅在维护报告出现，不是用户一级导航。
+-
+-| 页面 | 用户参数 | 后端字段/当前源码依据 |
+-|---|---|---|
+-| 任务设置 | 任务名称、任务说明 | GUI 元数据，合同没有这两个字段，保存于 `task.metadata` |
+-| 任务设置 | 仿真时长 (s) | `CASE.TOTAL_TIME`；runner 要求有限且 >0 |
+-| 任务设置 | 目标数量 | `CASE.NUM_SPHERES`；完整编号范围 1..N；GUI 为内存防护限制 1..100000，此上限不是合同约束 |
+-| 任务设置 | 新建/打开/保存/另存为 | MFC 文档命令；独立 `.pptask` GUI 格式，无后端字段 |
+-| 目标参数 | 球体半径 (m) | `TARGET_PHYSICS.r`；Fortran :1621～1632；不是任意形状尺寸 |
+-| 目标参数 | 密度 (kg/m³) | `TARGET_PHYSICS.rho`；同上 |
+-| 目标参数 | 比热 (J/(kg·K)) | `TARGET_PHYSICS.cp`；同上 |
+-| 目标参数 | 初始温度 (K) | `TARGET_PHYSICS.t_init`；同上 |
+-| 目标参数 | 内部热源功率 (W) | `TARGET_PHYSICS.q_int`；同上 |
+-| 目标参数 | 红外发射率 | `TARGET_PHYSICS.eps_ir`；同上 |
+-| 目标参数 | 太阳吸收率 | `TARGET_PHYSICS.alpha_s`；同上 |
+-| 目标参数 | 红外反射率 | `TARGET_PHYSICS.rho_ir`；Fortran :1632 存入 `sphere_ir_reflectivity` |
+-| 目标参数 | 单目标独立物性 | 禁用说明项，后续开放；本版统一设置，无独立物性覆盖 |
+-| 场景与运动 | 群中心位置 X/Y/Z (m) | `GROUP_STATE.GROUP_CENTER[0..2]`；Fortran :1460 |
+-| 场景与运动 | 群方向 X/Y/Z | `GROUP_STATE.GROUP_NORMAL[0..2]`；Fortran :1463 |
+-| 场景与运动 | 群参考上方向 X/Y/Z | `GROUP_STATE.GROUP_UP[0..2]`；Fortran :1466 |
+-| 场景与运动 | 群速度 X/Y/Z (m/s) | `GROUP_STATE.GROUP_VELOCITY[0..2]`；Fortran :1469 |
+-| 场景与运动 | 群角速度 X/Y/Z (rad/s) | `GROUP_STATE.GROUP_ANGULAR_VELOCITY[0..2]`；Fortran :1472 |
+-| 场景与运动 | 群角加速度 X/Y/Z (rad/s²) | `GROUP_STATE.GROUP_ANGULAR_ACCELERATION[0..2]`；Fortran :1475 |
+-| 场景与运动 | 目标编号 | `TARGET_SCENE.id`，与物性编号一致；选择仅影响当前显示，不改变目标数据 |
+-| 场景与运动 | 相对位置 X/Y/Z (m) | `TARGET_SCENE.x/y/z`；Fortran :160、:1637～1648，群中心相对偏移 |
+-| 场景与运动 | 相对速度 X/Y/Z (m/s) | `TARGET_SCENE.vx/vy/vz`；Fortran :161，释放后的相对分离速度 |
+-| 场景与运动 | 相对加速度 X/Y/Z (m/s²) | `TARGET_SCENE.ax/ay/az`；Fortran :162、:1648 |
+-| 场景与运动 | 释放时间 (s) | `TARGET_SCENE.release_time`；runner :121～125；1号目标固定为0 |
+-| 场景与运动 | 启用目标 | `TARGET_SCENE.active`；runner :126；1号目标固定启用。统一放在此页，避免与物性页出现两个冲突开关 |
+-| 环境与观测 | 太阳辐照度 (W/m²) | `ENVIRONMENT.SOLAR_FLUX` |
+-| 环境与观测 | 太阳方向 X/Y/Z | `ENVIRONMENT.SOLAR_DIRECTION[0..2]` |
+-| 环境与观测 | 环境辐射温度 (K) | `ENVIRONMENT.ENVIRONMENT_TEMP`；Fortran :1459；不是环境流体温度 |
+-| 环境与观测 | 观测位置 X/Y/Z (m) | `OBSERVATION.APERTURE_CENTER[0..2]` |
+-| 环境与观测 | 观测方向 X/Y/Z | `OBSERVATION.APERTURE_NORMAL[0..2]` |
+-| 环境与观测 | 观测参考上方向 X/Y/Z | `OBSERVATION.APERTURE_UP[0..2]` |
+-| 环境与观测 | 孔径尺寸 (m) | `OBSERVATION.APERTURE_SIZE` |
+-| 环境与观测 | 焦距 (m) | `OBSERVATION.SPOT_FOCAL_LENGTH` |
+-| 环境与观测 | 像面尺寸 (m) | `OBSERVATION.SPOT_PLANE_SIZE` |
+-| 环境与观测 | 孔径跟踪目标群中心 | `OBSERVATION.APERTURE_TRACK_TARGET`；Fortran :1087，明确指向群中心 |
+-| 环境与观测 | 探测器跟踪目标群中心 | `OBSERVATION.DETECTOR_TRACK_TARGET`；Fortran :1095～1100 |
+-| 环境与观测 | 孔径速度 X/Y/Z (m/s) | `OBSERVATION.APERTURE_VELOCITY[0..2]` |
+-| 环境与观测 | 孔径角速度 X/Y/Z (rad/s) | `OBSERVATION.APERTURE_ANGULAR_VELOCITY[0..2]` |
+-| 环境与观测 | 孔径角加速度 X/Y/Z (rad/s²) | `OBSERVATION.APERTURE_ANGULAR_ACCELERATION[0..2]` |
+-| 环境与观测 | 探测器方向 X/Y/Z | `OBSERVATION.DETECTOR_NORMAL[0..2]` |
+-| 环境与观测 | 探测器参考上方向 X/Y/Z | `OBSERVATION.DETECTOR_UP[0..2]` |
+-| 环境与观测 | 探测器速度 X/Y/Z (m/s) | `OBSERVATION.DETECTOR_VELOCITY[0..2]` |
+-| 环境与观测 | 探测器角速度 X/Y/Z (rad/s) | `OBSERVATION.DETECTOR_ANGULAR_VELOCITY[0..2]` |
+-| 环境与观测 | 探测器角加速度 X/Y/Z (rad/s²) | `OBSERVATION.DETECTOR_ANGULAR_ACCELERATION[0..2]` |
+-| 计算与输出 | 当前功能模块 | GUI 状态，通过左侧模块节点或原菜单命令切换 |
+-| 计算与输出·正向 | 正式计算/仅准备输入 | runner :207 的 `--prepare-only`；选择值本版只保存，不执行 |
+-| 计算与输出·正向 | 超时时间 (s) | runner :207 的 `--timeout-seconds`，GUI 初值1800 |
+-| 计算与输出·正向 | 输出选项 | 禁用说明“采用正式输出策略”；依据 `production_output_policy.inc`，不虚构 CLI 开关 |
+-| 计算与输出·预测 | 温度/点图像/温度与点图像 | `02-智能预测/02-程序/surrogate_prediction_runner.py:362` 的 `temperature/point-image/both` |
+-| 计算与输出·评估 | 特征提取/相似度评估 | `03-相似度评估/02-程序/similarity_evaluator.py:152` 的 `features/similarity` |
+-| 计算与输出·评估 | 参考运行目录、候选运行目录 | 同文件 :154～155 的 `--reference-run/--candidate-run`；特征提取以后需映射单一 `--run-dir`，本版无执行映射 |
+-| 计算与输出·构建 | 相似度要求、候选数量、搜索设置 | 禁用预留区域。`04-红外场景构建/02-程序/scene_search_controller.py:366～369` 的 `similarity_requirement.required_percent`、`required_candidate_count`；:634～638 的 request/config/max-candidates。此版不假装这些区域已接入 |
+-
+-新建任务使用 GUI 初始模板，不宣称后端存在默认回退；相对位置初值沿 X 每目标间隔1m，用户可以修改。半径、辐射参数与运动初值尚需专业用户确认，不能视作经过完整物理校验的场景。
+-
+-## 6. 高级设置
+-
+-- 红外反射率、单目标独立物性预留说明。
+-- 目标群角速度和角加速度。
+-- 通过目标编号选择的单目标相对位置/速度/加速度、释放时间与启用；不会铺开全部目标。
+-- 孔径运动，以及探测器方向、参考上方向、速度和角运动。
+-
+-## 7. 明确排除
+-
+-- 地球红外、对流换热边界、环境流体温度。
+-- 旧轨道输入模式、经典/开普勒轨道要素、平近点角等旧轨道选择字段：Fortran :1802～1810 明确返回 `UNSUPPORTED_LEGACY_FIELD`；正式合同不接收。
+-- 任意编号的“跟踪对象选择”：当前接口只支持是否跟踪目标群中心。
+-- 任意形状/长宽高：当前物性合同是球体半径。
+-- 数值步长、射线数量等未列入正式请求合同的内部配置不作为普通业务输入恢复。
+-
+-## 8. 未完成功能与兼容边界
+-
+-- x64 Release 编译、新 EXE 启动、实际点击/保存回读/缩放回归尚未完成，需有 v143 + 对应 x64 MFC 的环境。
+-- 完整 forward-request-v1 映射、JSON 导入导出、完整物理/几何/交叉字段校验未实现。现有输入仅做有限数、目标数量/编号保护，固定主目标启用及释放时间。
+-- `.pptask` 是新 GUI archive 格式，与旧无版本 archive 不兼容；错误版本被拒绝，不进行静默迁移。后端 JSON 不能作为 GUI 任务直接打开。
+-- 单目标独立物性覆盖尚未实现；统一参数修改即应用到全部目标；减少目标数量会删除尾部目标运动数据。
+-- 四模块菜单可路由至编辑器，旧启停及完成消息 ID 保留；启动命令本版不执行后端。旧线程/进程代码和旧 Dialog 保留但不会被新编辑入口调用。
+-- ProcessManager、Python 调用重构、stdout/stderr、GUI_PROGRESS、曲线/点图像、历史 run 均未推进。
+-- 未新增右侧结果区与底部日志工作台；本次仅实现左树和参数编辑器。
+-- 当前不是 Git 仓库，无法确认分支、基线、Git diff 或提交。
+-
+-## 9. 编译方式
+-
+-在安装了 VS2022 C++ 桌面开发、v143 x64/x86 工具和相应 MFC 组件的开发者命令提示符中，从工程根目录执行：
+-
+-```bat
+-MSBuild.exe Pre-process.sln /m /p:Configuration=Release /p:Platform=x64
+-```
+-
+-输出应为 `x64/Release/Pre-process.exe`。本次没有改变工具集，也没有用旧 EXE 冒充新构建。
+-
+-## 10. 测试结果
+-
+-| 检查 | 结果 |
+-|---|---|
+-| 原项目 x64 Release 构建 | 阻塞：`MSB8020`，找不到 v143；日志 `.work/task-editor/build-v143.log` |
+-| 命令行临时指定 v142 | 阻塞：`MSB8041`，缺少 MFC；日志 `.work/task-editor/build.log`，未改工程工具集 |
+-| vcxproj / filters XML 解析 | 通过 |
+-| 原 View 四模块命令、完成消息映射逐条比较 | 通过，命令 ID/处理函数绑定保留 |
+-| 五个中文一级导航及禁用参数检查 | 通过源码检查 |
+-| 新资源 ID 冲突检查 | 通过；旧资源同值别名保留 |
+-| coreprogram 内容核对 | 修改前后均119个文件，SHA-256 与规范化路径配对差异0；初始 PowerShell CSV 将中文路径转为 ASCII，比较时对当前路径做相同规范化，哈希不受影响 |
+-| 新 EXE 启动/切页/保存回读/窗口缩放/四模块点击 | 未执行，不能以源码检查替代运行验收 |
+-| Git diff | 无法执行：根目录不是 Git 仓库；替代差异见 `.work/task-editor/source.diff` |
+-
+-建议人工回归：五页各改一项，切换往返；新增/减少目标并选择目标编号；保存、关闭、打开核对；取消新建/打开；编辑中直接按 Ctrl+S、关闭窗口；四模块菜单和树往返；800×600至最大化以及125%/150%缩放检查。观察只有当前页面可见、控件可滚动、没有重叠。
+-
+-## 11. 需人工确认的界面设计点
+-
+-1. 是否接受“分组属性编辑器 + 可折叠高级设置”的第一版表现形式。
+-2. 单目标启用/编号统一放在“场景与运动”，目标物性页只做统一设置。
+-3. 初始参数模板、相对位置间隔和最小窗口尺寸是否符合实际工作习惯。
+-4. `.pptask` 独立任务格式与旧文件不兼容；是否在后续阶段需要显式迁移工具。
+-5. 本阶段菜单“编辑计算设置”替代真正启动，后续正式接入时再恢复运行操作。
+-
+-## 12. 建议下一条 Prompt
+-
+-优先补齐本阶段验收，不开始映射层：
+-
+-> 继续 PROMPT-20260911-002 的验收收尾。读取维护文档与 07_task_editor_v1_report.md，在具备 VS2022/v143/x64 MFC 的环境编译 Release，运行新 EXE，验证五页切换、编号选择、增减目标、保存回读、四模块菜单和缩放；修复发现的问题。coreprogram 只读，不推进 JSON 映射、进程管理或结果显示。提供实际验收记录并检查 Git diff。
+-
+-验收通过后，下一阶段才考虑业务任务到 forward-request-v1 的正式映射、JSON 导入导出和任务校验。
++不再单独建设复杂接口框架，保持GUI作为后端程序封装层。
+diff --git a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf.sln b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf.sln
+index 1c79274..4ca8a5b 100644
+--- a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf.sln
++++ b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf.sln
+@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.36422.26
+ MinimumVisualStudioVersion = 10.0.40219.1
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PreProcess.Wpf", "PreProcess.Wpf\PreProcess.Wpf.csproj", "{198C99F0-DA2B-4569-A331-9097E172F767}"
+ EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapperTest", "MapperTest\MapperTest.csproj", "{A94D2A30-778A-4B44-831E-73C4989B11B2}"
++EndProject
+ Global
+ 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+ 		Debug|Any CPU = Debug|Any CPU
+@@ -15,6 +17,10 @@ Global
+ 		{198C99F0-DA2B-4569-A331-9097E172F767}.Debug|Any CPU.Build.0 = Debug|Any CPU
+ 		{198C99F0-DA2B-4569-A331-9097E172F767}.Release|Any CPU.ActiveCfg = Release|Any CPU
+ 		{198C99F0-DA2B-4569-A331-9097E172F767}.Release|Any CPU.Build.0 = Release|Any CPU
++		{A94D2A30-778A-4B44-831E-73C4989B11B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{A94D2A30-778A-4B44-831E-73C4989B11B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{A94D2A30-778A-4B44-831E-73C4989B11B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{A94D2A30-778A-4B44-831E-73C4989B11B2}.Release|Any CPU.Build.0 = Release|Any CPU
+ 	EndGlobalSection
+ 	GlobalSection(SolutionProperties) = preSolution
+ 		HideSolutionNode = FALSE
+diff --git a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.config b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.config
+index 5754728..de7c9a3 100644
+--- a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.config
++++ b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.config
+@@ -1,6 +1,8 @@
+-﻿<?xml version="1.0" encoding="utf-8" ?>
+-<configuration>
+-    <startup> 
+-        <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.7.2" />
+-    </startup>
+-</configuration>
+\ No newline at end of file
++﻿<?xml version="1.0" encoding="utf-8" ?>
++<configuration>
++    <!-- Empty settings use package discovery, PATH Python, and LocalApplicationData runtime storage. -->
++    <appSettings><add key="BackendRoot" value=""/><add key="PythonExecutable" value=""/><add key="RuntimeRoot" value=""/></appSettings>
++    <startup>
++        <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.8" />
++    </startup>
++</configuration>
+diff --git a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.xaml b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.xaml
+index 0c00c37..32f8119 100644
+--- a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.xaml
++++ b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.xaml
+@@ -1,9 +1,12 @@
+-﻿<Application x:Class="PreProcess.Wpf.App"
+-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+-             xmlns:local="clr-namespace:PreProcess.Wpf"
+-             StartupUri="MainWindow.xaml">
+-    <Application.Resources>
+-         
+-    </Application.Resources>
+-</Application>
++﻿<Application x:Class="PreProcess.Wpf.App"
++ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
++ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
++ StartupUri="MainWindow.xaml">
++ <Application.Resources>
++  <ResourceDictionary>
++   <ResourceDictionary.MergedDictionaries>
++    <ResourceDictionary Source="Resources/WorkbenchStyles.xaml"/>
++   </ResourceDictionary.MergedDictionaries>
++  </ResourceDictionary>
++ </Application.Resources>
++</Application>
+diff --git a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml
+index d6ea4d1..941f0e5 100644
+--- a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml
++++ b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml
+@@ -1,12 +1,66 @@
+-﻿<Window x:Class="PreProcess.Wpf.MainWindow"
+-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+-        xmlns:local="clr-namespace:PreProcess.Wpf"
+-        mc:Ignorable="d"
+-        Title="MainWindow" Height="450" Width="800">
+-    <Grid>
+-        
+-    </Grid>
+-</Window>
++<Window x:Class="PreProcess.Wpf.MainWindow"
++ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
++ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
++ xmlns:vm="clr-namespace:PreProcess.Wpf.ViewModels"
++ xmlns:views="clr-namespace:PreProcess.Wpf.Views"
++ Title="红外场景工作台" Width="1400" Height="850" MinWidth="1000" MinHeight="650" WindowStartupLocation="CenterScreen">
++ <Window.DataContext><vm:MainWindowViewModel/></Window.DataContext>
++ <Window.Resources>
++  <DataTemplate DataType="{x:Type vm:NavigationItemViewModel}"><views:PlaceholderPage/></DataTemplate>
++ <DataTemplate DataType="{x:Type vm:TaskSettingsViewModel}"><views:TaskSettingsView/></DataTemplate>
++<DataTemplate DataType="{x:Type vm:TargetSettingsViewModel}"><views:TargetSettingsView/></DataTemplate>
++<DataTemplate DataType="{x:Type vm:SceneMotionViewModel}"><views:SceneMotionView/></DataTemplate>
++<DataTemplate DataType="{x:Type vm:EnvironmentObservationViewModel}"><views:EnvironmentObservationView/></DataTemplate>
++<DataTemplate DataType="{x:Type vm:CalculationOutputViewModel}"><views:CalculationOutputView/></DataTemplate>
++<DataTemplate DataType="{x:Type vm:ForwardRunViewModel}"><views:ForwardRunView/></DataTemplate></Window.Resources>
++ <DockPanel>
++  <Menu DockPanel.Dock="Top">
++   <MenuItem Header="文件"><MenuItem Header="新建任务" Command="{Binding Editor.NewCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}"/></MenuItem>
++   <MenuItem Header="任务"><MenuItem Header="任务设置" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[0].Children[0]}"/></MenuItem>
++   <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding Execution.RunCommand}"/><MenuItem Header="停止" Command="{Binding Execution.StopCommand}"/></MenuItem>
++   <MenuItem Header="查看"><MenuItem Header="输出结果" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[2]}"/><MenuItem Header="日志与告警" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[3]}"/></MenuItem>
++   <MenuItem Header="帮助"><MenuItem Header="关于工作台" Command="{Binding PlaceholderCommand}" CommandParameter="帮助"/></MenuItem>
++  </Menu>
++  <ToolBarTray DockPanel.Dock="Top" IsLocked="True"><ToolBar>
++   <Button Content="新建任务" Command="{Binding Editor.NewCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
++   <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
++   <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" Padding="10,4"/>
++   <Separator/><Button Content="运行" Command="{Binding Execution.RunCommand}" Padding="16,4"/>
++   <Button Content="停止" Command="{Binding Execution.StopCommand}" Padding="16,4"/>
++  </ToolBar></ToolBarTray>
++  <StatusBar DockPanel.Dock="Bottom"><TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis"/></StatusBar>
++  <Grid Margin="8">
++   <Grid.ColumnDefinitions><ColumnDefinition Width="230" MinWidth="170"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="320"/><ColumnDefinition Width="6"/><ColumnDefinition Width="350" MinWidth="240"/></Grid.ColumnDefinitions>
++   <Border Style="{StaticResource Panel}"><DockPanel>
++    <TextBlock DockPanel.Dock="Top" Text="任务与功能导航" Style="{StaticResource PanelTitle}"/>
++    <TreeView x:Name="NavigationTree" ItemsSource="{Binding Navigation}" SelectedItemChanged="OnNavigationSelectionChanged" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="任务与功能导航">
++     <TreeView.ItemTemplate><HierarchicalDataTemplate ItemsSource="{Binding Children}"><TextBlock Text="{Binding Title}"/></HierarchicalDataTemplate></TreeView.ItemTemplate>
++    </TreeView>
++   </DockPanel></Border>
++   <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整导航区宽度"/>
++   <Grid Grid.Column="2">
++    <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="230"/><RowDefinition Height="6"/><RowDefinition Height="190" MinHeight="120"/></Grid.RowDefinitions>
++    <Border Style="{StaticResource Panel}"><DockPanel>
++     <TextBlock DockPanel.Dock="Top" Text="参数 / 数据编辑区" Style="{StaticResource PanelTitle}"/>
++     <ContentControl x:Name="EditorContent" Content="{Binding CurrentContent}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
++    </DockPanel></Border>
++    <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整编辑区与日志区高度"/>
++    <Border Grid.Row="2" Style="{StaticResource Panel}"><TabControl x:Name="LogTabs" BorderThickness="0" AutomationProperties.Name="日志告警进度">
++     <TabItem Header="日志"><ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding Execution.LogText}" Style="{StaticResource EmptyText}"/></ScrollViewer></TabItem>
++     <TabItem Header="告警"><ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding Execution.WarningText}" Style="{StaticResource EmptyText}"/></ScrollViewer></TabItem>
++     <TabItem Header="进度"><StackPanel Margin="18"><TextBlock Text="{Binding Execution.Status}" Margin="0,0,0,12"/><ProgressBar Minimum="0" Maximum="100" Value="0" IsIndeterminate="{Binding Execution.IsBusy}" Height="18" AutomationProperties.Name="任务进度"/><TextBlock Text="{Binding Execution.ResultLocation}" TextWrapping="Wrap" Margin="0,8"/></StackPanel></TabItem>
++    </TabControl></Border>
++   </Grid>
++   <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整结果区宽度"/>
++   <Border Grid.Column="4" Style="{StaticResource Panel}"><DockPanel>
++    <TextBlock DockPanel.Dock="Top" Text="结果显示区" Style="{StaticResource PanelTitle}"/>
++    <TabControl x:Name="ResultTabs" BorderThickness="0" AutomationProperties.Name="结果显示">
++     <TabItem Header="曲线"><TextBlock Text="曲线显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
++     <TabItem Header="点图像"><TextBlock Text="点图像显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
++     <TabItem Header="数据表"><TextBlock Text="数据表显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
++     <TabItem Header="结果摘要"><TextBlock Text="结果摘要显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
++    </TabControl>
++   </DockPanel></Border>
++  </Grid>
++ </DockPanel>
++</Window>
+diff --git a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml.cs b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml.cs
+index ab77f06..9b7b5d1 100644
+--- a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml.cs
++++ b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml.cs
+@@ -1,28 +1,50 @@
+-﻿using System;
+-using System.Collections.Generic;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+-using System.Windows;
+-using System.Windows.Controls;
+-using System.Windows.Data;
+-using System.Windows.Documents;
+-using System.Windows.Input;
+-using System.Windows.Media;
+-using System.Windows.Media.Imaging;
+-using System.Windows.Navigation;
+-using System.Windows.Shapes;
+-
+-namespace PreProcess.Wpf
+-{
+-    /// <summary>
+-    /// MainWindow.xaml 的交互逻辑
+-    /// </summary>
+-    public partial class MainWindow : Window
+-    {
+-        public MainWindow()
+-        {
+-            InitializeComponent();
+-        }
+-    }
++﻿using System;
++using System.ComponentModel;
++using System.Windows;
++using System.Windows.Media;
++using PreProcess.Wpf.ViewModels;
++
++namespace PreProcess.Wpf
++{
++    public partial class MainWindow : Window
++    {
++        private bool closingAfterStop;
++        public MainWindow()
++        {
++            InitializeComponent();
++            var vm = (MainWindowViewModel)DataContext;
++            vm.Execution.HasInputErrors = () => HasErrors(EditorContent);
++            vm.Execution.PropertyChanged += (s, e) => UpdateEditing();
++            vm.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(MainWindowViewModel.CurrentContent)) UpdateEditing(); };
++            Closing += OnClosing;
++            Closed += (s, e) => vm.Execution.Dispose();
++        }
++        private void UpdateEditing()
++        {
++            var vm = (MainWindowViewModel)DataContext;
++            EditorContent.IsEnabled = !vm.Execution.IsBusy || ReferenceEquals(vm.CurrentContent, vm.Execution);
++        }
++        private async void OnClosing(object sender, CancelEventArgs e)
++        {
++            var execution = ((MainWindowViewModel)DataContext).Execution;
++            if (closingAfterStop || !execution.IsBusy) return;
++            e.Cancel = true;
++            await execution.StopAndWaitAsync();
++            closingAfterStop = true;
++            Close();
++        }
++        private static bool HasErrors(DependencyObject node)
++        {
++            if (System.Windows.Controls.Validation.GetHasError(node)) return true;
++            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
++                if (HasErrors(VisualTreeHelper.GetChild(node, i))) return true;
++            return false;
++        }
++        private void OnNavigationSelectionChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
++        {
++            var viewModel = DataContext as MainWindowViewModel;
++            if (viewModel?.NavigateCommand.CanExecute(e.NewValue) == true)
++                viewModel.NavigateCommand.Execute(e.NewValue);
++        }
++    }
+ }
+diff --git a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/PreProcess.Wpf.csproj b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/PreProcess.Wpf.csproj
+index a051ee3..6937ee4 100644
+--- a/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/PreProcess.Wpf.csproj
++++ b/GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/PreProcess.Wpf.csproj
+@@ -1,98 +1,143 @@
+-﻿<?xml version="1.0" encoding="utf-8"?>
+-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+-  <PropertyGroup>
+-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+-    <ProjectGuid>{198C99F0-DA2B-4569-A331-9097E172F767}</ProjectGuid>
+-    <OutputType>WinExe</OutputType>
+-    <RootNamespace>PreProcess.Wpf</RootNamespace>
+-    <AssemblyName>PreProcess.Wpf</AssemblyName>
+-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+-    <FileAlignment>512</FileAlignment>
+-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+-    <WarningLevel>4</WarningLevel>
+-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+-    <Deterministic>true</Deterministic>
+-  </PropertyGroup>
+-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+-    <PlatformTarget>AnyCPU</PlatformTarget>
+-    <DebugSymbols>true</DebugSymbols>
+-    <DebugType>full</DebugType>
+-    <Optimize>false</Optimize>
+-    <OutputPath>bin\Debug\</OutputPath>
+-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+-    <ErrorReport>prompt</ErrorReport>
+-    <WarningLevel>4</WarningLevel>
+-  </PropertyGroup>
+-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+-    <PlatformTarget>AnyCPU</PlatformTarget>
+-    <DebugType>pdbonly</DebugType>
+-    <Optimize>true</Optimize>
+-    <OutputPath>bin\Release\</OutputPath>
+-    <DefineConstants>TRACE</DefineConstants>
+-    <ErrorReport>prompt</ErrorReport>
+-    <WarningLevel>4</WarningLevel>
+-  </PropertyGroup>
+-  <ItemGroup>
+-    <Reference Include="System" />
+-    <Reference Include="System.Data" />
+-    <Reference Include="System.Xml" />
+-    <Reference Include="Microsoft.CSharp" />
+-    <Reference Include="System.Core" />
+-    <Reference Include="System.Xml.Linq" />
+-    <Reference Include="System.Data.DataSetExtensions" />
+-    <Reference Include="System.Net.Http" />
+-    <Reference Include="System.Xaml">
+-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+-    </Reference>
+-    <Reference Include="WindowsBase" />
+-    <Reference Include="PresentationCore" />
+-    <Reference Include="PresentationFramework" />
+-  </ItemGroup>
+-  <ItemGroup>
+-    <ApplicationDefinition Include="App.xaml">
+-      <Generator>MSBuild:Compile</Generator>
+-      <SubType>Designer</SubType>
+-    </ApplicationDefinition>
+-    <Page Include="MainWindow.xaml">
+-      <Generator>MSBuild:Compile</Generator>
+-      <SubType>Designer</SubType>
+-    </Page>
+-    <Compile Include="App.xaml.cs">
+-      <DependentUpon>App.xaml</DependentUpon>
+-      <SubType>Code</SubType>
+-    </Compile>
+-    <Compile Include="MainWindow.xaml.cs">
+-      <DependentUpon>MainWindow.xaml</DependentUpon>
+-      <SubType>Code</SubType>
+-    </Compile>
+-  </ItemGroup>
+-  <ItemGroup>
+-    <Compile Include="Properties\AssemblyInfo.cs">
+-      <SubType>Code</SubType>
+-    </Compile>
+-    <Compile Include="Properties\Resources.Designer.cs">
+-      <AutoGen>True</AutoGen>
+-      <DesignTime>True</DesignTime>
+-      <DependentUpon>Resources.resx</DependentUpon>
+-    </Compile>
+-    <Compile Include="Properties\Settings.Designer.cs">
+-      <AutoGen>True</AutoGen>
+-      <DependentUpon>Settings.settings</DependentUpon>
+-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+-    </Compile>
+-    <EmbeddedResource Include="Properties\Resources.resx">
+-      <Generator>ResXFileCodeGenerator</Generator>
+-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+-    </EmbeddedResource>
+-    <None Include="Properties\Settings.settings">
+-      <Generator>SettingsSingleFileGenerator</Generator>
+-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+-    </None>
+-  </ItemGroup>
+-  <ItemGroup>
+-    <None Include="App.config" />
+-  </ItemGroup>
+-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+-</Project>
+\ No newline at end of file
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
++  <PropertyGroup>
++    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
++    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
++    <ProjectGuid>{198C99F0-DA2B-4569-A331-9097E172F767}</ProjectGuid>
++    <OutputType>WinExe</OutputType>
++    <RootNamespace>PreProcess.Wpf</RootNamespace>
++    <AssemblyName>PreProcess.Wpf</AssemblyName>
++    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
++    <FileAlignment>512</FileAlignment>
++    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
++    <WarningLevel>4</WarningLevel>
++    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
++    <Deterministic>true</Deterministic>
++  </PropertyGroup>
++  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
++    <PlatformTarget>AnyCPU</PlatformTarget>
++    <DebugSymbols>true</DebugSymbols>
++    <DebugType>full</DebugType>
++    <Optimize>false</Optimize>
++    <OutputPath>bin\Debug\</OutputPath>
++    <DefineConstants>DEBUG;TRACE</DefineConstants>
++    <ErrorReport>prompt</ErrorReport>
++    <WarningLevel>4</WarningLevel>
++  </PropertyGroup>
++  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
++    <PlatformTarget>AnyCPU</PlatformTarget>
++    <DebugType>pdbonly</DebugType>
++    <Optimize>true</Optimize>
++    <OutputPath>bin\Release\</OutputPath>
++    <DefineConstants>TRACE</DefineConstants>
++    <ErrorReport>prompt</ErrorReport>
++    <WarningLevel>4</WarningLevel>
++  </PropertyGroup>
++  <ItemGroup>
++    <Reference Include="System" /><Reference Include="System.Configuration" /><Reference Include="System.Web.Extensions" />
++    <Reference Include="System.Data" />
++    <Reference Include="System.Xml" />
++    <Reference Include="Microsoft.CSharp" />
++    <Reference Include="System.Core" />
++    <Reference Include="System.Xml.Linq" />
++    <Reference Include="System.Data.DataSetExtensions" />
++    <Reference Include="System.Net.Http" />
++    <Reference Include="System.Xaml">
++      <RequiredTargetFramework>4.0</RequiredTargetFramework>
++    </Reference>
++    <Reference Include="WindowsBase" />
++    <Reference Include="PresentationCore" />
++    <Reference Include="PresentationFramework" />
++  </ItemGroup>
++  <ItemGroup>
++    <ApplicationDefinition Include="App.xaml">
++      <Generator>MSBuild:Compile</Generator>
++      <SubType>Designer</SubType>
++    </ApplicationDefinition>
++    <Page Include="MainWindow.xaml">
++      <Generator>MSBuild:Compile</Generator>
++      <SubType>Designer</SubType>
++    </Page>
++    <Compile Include="App.xaml.cs">
++      <DependentUpon>App.xaml</DependentUpon>
++      <SubType>Code</SubType>
++    </Compile>
++    <Compile Include="MainWindow.xaml.cs">
++      <DependentUpon>MainWindow.xaml</DependentUpon>
++      <SubType>Code</SubType>
++    </Compile>
++  </ItemGroup>
++  <ItemGroup>
++    <Compile Include="Properties\AssemblyInfo.cs">
++      <SubType>Code</SubType>
++    </Compile>
++    <Compile Include="Properties\Resources.Designer.cs">
++      <AutoGen>True</AutoGen>
++      <DesignTime>True</DesignTime>
++      <DependentUpon>Resources.resx</DependentUpon>
++    </Compile>
++    <Compile Include="Properties\Settings.Designer.cs">
++      <AutoGen>True</AutoGen>
++      <DependentUpon>Settings.settings</DependentUpon>
++      <DesignTimeSharedInput>True</DesignTimeSharedInput>
++    </Compile>
++    <EmbeddedResource Include="Properties\Resources.resx">
++      <Generator>ResXFileCodeGenerator</Generator>
++      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
++    </EmbeddedResource>
++    <None Include="Properties\Settings.settings">
++      <Generator>SettingsSingleFileGenerator</Generator>
++      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
++    </None>
++  </ItemGroup>
++  <ItemGroup>
++    <None Include="App.config" />
++  </ItemGroup>
++  <ItemGroup>
++    <Compile Include="ViewModels\ObservableObject.cs" />
++    <Compile Include="ViewModels\RelayCommand.cs" />
++    <Compile Include="ViewModels\NavigationItemViewModel.cs" />
++    <Compile Include="ViewModels\MainWindowViewModel.cs" />
++    <Compile Include="Views\PlaceholderPage.xaml.cs"><DependentUpon>PlaceholderPage.xaml</DependentUpon></Compile>
++    <Page Include="Views\PlaceholderPage.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++    <Page Include="Resources\WorkbenchStyles.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++    <None Include="Models\README.md" />
++    <None Include="Services\README.md" />
++  </ItemGroup>
++<ItemGroup>
++<Compile Include="Models\BindableModel.cs" />
++<Compile Include="Models\CalculationSettings.cs" />
++<Compile Include="Models\EnvironmentObservationSettings.cs" />
++<Compile Include="Models\SceneMotionSettings.cs" />
++<Compile Include="Models\TargetPhysics.cs" />
++<Compile Include="Models\TargetGeometrySettings.cs" />
++<Compile Include="Models\TaskModel.cs" />
++<Compile Include="Models\Vector3.cs" />
++<Compile Include="Requests\ForwardSimulationRequest.cs" />
++<Compile Include="Requests\ModuleRequests.cs" />
++<Compile Include="Services\Mappers\ForwardSimulationMapper.cs" />
++<Compile Include="Services\Mappers\PredictionMapper.cs" />
++<Compile Include="Services\Mappers\TrajectoryMapper.cs" />
++<Compile Include="Services\Mappers\SimilarityEvaluationMapper.cs" />
++<Compile Include="Services\Mappers\SceneBuildMapper.cs" />
++<Compile Include="Validation\CapabilityValidator.cs" /><Compile Include="Services\RequestGenerator.cs" /><Compile Include="Services\ForwardRequestValidator.cs" /><EmbeddedResource Include="Resources\forward_request_schema.json"><LogicalName>PreProcess.Wpf.forward_request_schema.json</LogicalName></EmbeddedResource>
++<Compile Include="ViewModels\TaskEditorViewModel.cs" />
++<Page Include="Views\Vector3Editor.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\Vector3Editor.xaml.cs"><DependentUpon>Vector3Editor.xaml</DependentUpon></Compile>
++<Page Include="Views\TargetPhysicsEditor.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\TargetPhysicsEditor.xaml.cs"><DependentUpon>TargetPhysicsEditor.xaml</DependentUpon></Compile>
++<Page Include="Views\TaskSettingsView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\TaskSettingsView.xaml.cs"><DependentUpon>TaskSettingsView.xaml</DependentUpon></Compile>
++<Page Include="Views\TargetSettingsView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\TargetSettingsView.xaml.cs"><DependentUpon>TargetSettingsView.xaml</DependentUpon></Compile>
++<Page Include="Views\SceneMotionView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\SceneMotionView.xaml.cs"><DependentUpon>SceneMotionView.xaml</DependentUpon></Compile>
++<Page Include="Views\EnvironmentObservationView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\EnvironmentObservationView.xaml.cs"><DependentUpon>EnvironmentObservationView.xaml</DependentUpon></Compile>
++<Page Include="Views\CalculationOutputView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
++<Compile Include="Views\CalculationOutputView.xaml.cs"><DependentUpon>CalculationOutputView.xaml</DependentUpon></Compile>
++</ItemGroup>
++<ItemGroup><Compile Include="Services\Process\GuiProgressParser.cs" /><Compile Include="Services\Process\ProcessLogEvent.cs" /><Compile Include="Services\Process\ProcessManager.cs" /><Compile Include="Services\Process\ProcessProgressEvent.cs" /><Compile Include="Services\Process\ProcessRunRequest.cs" /><Compile Include="Services\Process\ProcessRunResult.cs" /><Compile Include="Services\Process\WindowsJobProcess.cs" /><Compile Include="Services\Execution\BackendPathResolver.cs" /><Compile Include="Services\Execution\ForwardSimulationService.cs" /><Compile Include="ViewModels\ForwardRunViewModel.cs" /><Page Include="Views\ForwardRunView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ForwardRunView.xaml.cs"><DependentUpon>ForwardRunView.xaml</DependentUpon></Compile></ItemGroup>
++  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
++</Project>

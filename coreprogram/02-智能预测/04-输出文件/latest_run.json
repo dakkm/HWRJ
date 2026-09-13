@@ -1,8 +1,8 @@
 {
   "module": "02",
-  "run_id": "run_20260911_151613_31f86a58",
-  "run_dir": "C:\\Users\\PC\\Desktop\\新建文件夹\\程序说明\\02-智能预测\\04-输出文件\\runs\\run_20260911_151613_31f86a58",
+  "run_id": "run_20260912_065017_82733f2b",
+  "run_dir": "C:\\Users\\PC\\Desktop\\新建文件夹\\源码_v1.0.0_20260911\\02-智能预测\\04-输出文件\\runs\\run_20260912_065017_82733f2b",
   "status": "success",
-  "mode": "temperature",
-  "timestamp": 1789110974.5958068
+  "mode": "both",
+  "timestamp": 1789167024.776901
 }

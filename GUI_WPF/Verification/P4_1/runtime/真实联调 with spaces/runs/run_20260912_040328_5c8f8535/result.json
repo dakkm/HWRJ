@@ -1,0 +1,527 @@
+{
+  "module": "01",
+  "run_id": "run_20260912_040328_5c8f8535",
+  "input_contract": "forward-request-v1",
+  "parameters": {
+    "CASE": {
+      "TOTAL_TIME": 1000.0,
+      "NUM_SPHERES": 16
+    },
+    "ENVIRONMENT": {
+      "SOLAR_FLUX": 1361.0,
+      "SOLAR_DIRECTION": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "ENVIRONMENT_TEMP": 3.0
+    },
+    "GROUP_STATE": {
+      "GROUP_CENTER": [
+        0.0,
+        100000.0,
+        6500000.0
+      ],
+      "GROUP_NORMAL": [
+        0.0,
+        -0.996193717,
+        0.0871669503
+      ],
+      "GROUP_UP": [
+        0.0,
+        0.0871669503,
+        0.996193717
+      ],
+      "GROUP_VELOCITY": [
+        0.0,
+        -4000.0,
+        350.0
+      ],
+      "GROUP_ANGULAR_VELOCITY": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "GROUP_ANGULAR_ACCELERATION": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "OBSERVATION": {
+      "APERTURE_SIZE": 0.27,
+      "APERTURE_CENTER": [
+        100000.0,
+        -100000.0,
+        6500000.0
+      ],
+      "APERTURE_NORMAL": [
+        -0.447213595,
+        0.894427191,
+        0.0
+      ],
+      "APERTURE_UP": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "APERTURE_VELOCITY": [
+        -2100.0,
+        2100.0,
+        69.0
+      ],
+      "APERTURE_ANGULAR_VELOCITY": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "APERTURE_ANGULAR_ACCELERATION": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "APERTURE_TRACK_TARGET": true,
+      "DETECTOR_NORMAL": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "DETECTOR_UP": [
+        -0.447213595,
+        0.894427191,
+        0.0
+      ],
+      "DETECTOR_VELOCITY": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "DETECTOR_ANGULAR_VELOCITY": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "DETECTOR_ANGULAR_ACCELERATION": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "DETECTOR_TRACK_TARGET": true,
+      "SPOT_PLANE_SIZE": 0.0128,
+      "SPOT_FOCAL_LENGTH": 1.34
+    },
+    "TARGET_PHYSICS": [
+      {
+        "id": 1,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 2,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 3,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 4,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 5,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 6,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 7,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 8,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 9,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 10,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 11,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 12,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 13,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 14,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 15,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      },
+      {
+        "id": 16,
+        "r": 0.2,
+        "rho": 2700.0,
+        "cp": 900.0,
+        "eps_ir": 0.95,
+        "alpha_s": 0.95,
+        "rho_ir": 0.05,
+        "q_int": 300.0,
+        "t_init": 300.0
+      }
+    ],
+    "TARGET_SCENE": [
+      {
+        "id": 1,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 2,
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 3,
+        "x": 2.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 4,
+        "x": 3.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 5,
+        "x": 4.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 6,
+        "x": 5.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 7,
+        "x": 6.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 8,
+        "x": 7.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 9,
+        "x": 8.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 10,
+        "x": 9.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 11,
+        "x": 10.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 12,
+        "x": 11.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 13,
+        "x": 12.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 14,
+        "x": 13.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 15,
+        "x": 14.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      },
+      {
+        "id": 16,
+        "x": 15.0,
+        "y": 0.0,
+        "z": 0.0,
+        "vx": 0.0,
+        "vy": 0.0,
+        "vz": 0.0,
+        "ax": 0.0,
+        "ay": 0.0,
+        "az": 0.0,
+        "release_time": 0.0,
+        "active": true
+      }
+    ]
+  },
+  "case_config_json": "D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\runtime\\真实联调 with spaces\\runs\\run_20260912_040328_5c8f8535\\case_config.json",
+  "input_dat": "D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\runtime\\真实联调 with spaces\\runs\\run_20260912_040328_5c8f8535\\input.dat",
+  "output_dir": "D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\runtime\\真实联调 with spaces\\runs\\run_20260912_040328_5c8f8535\\output",
+  "request_json": "D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\runtime\\真实联调 with spaces\\runs\\run_20260912_040328_5c8f8535\\request.json",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "status": "prepared",
+  "return_code": 0,
+  "elapsed_seconds": 0.07308101654052734,
+  "result_json": "D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\runtime\\真实联调 with spaces\\runs\\run_20260912_040328_5c8f8535\\result.json"
+}

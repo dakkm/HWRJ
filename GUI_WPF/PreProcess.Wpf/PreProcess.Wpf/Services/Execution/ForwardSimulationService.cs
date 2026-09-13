@@ -86,7 +86,7 @@ namespace PreProcess.Wpf.Services.Execution
                     }, cancellation.Token).ConfigureAwait(false);
                     var probe = MakeRequest(paths);
                     probe.Arguments.Add("-c");
-                    probe.Arguments.Add("import sys,pandas; assert sys.version_info >= (3,10), 'Python 3.10+ required'; print('Python environment ready: '+sys.version.split()[0])");
+                    probe.Arguments.Add("import sys,pandas; assert sys.version_info >= (3,8), 'Python 3.8+ required'; print('Python environment ready: '+sys.version.split()[0])");
                     probe.Timeout = TimeSpan.FromSeconds(20);
                     var environment = await manager.RunAsync(probe, cancellation.Token).ConfigureAwait(false);
                     cancellation.Token.ThrowIfCancellationRequested();

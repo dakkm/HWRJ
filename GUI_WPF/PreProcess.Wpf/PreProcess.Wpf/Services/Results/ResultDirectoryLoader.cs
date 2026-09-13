@@ -38,6 +38,10 @@ namespace PreProcess.Wpf.Services.Results
                 File.Exists(Path.Combine(outputDirectory, "similarity_summary.json"))) return ResultModuleType.Similarity;
             if (File.Exists(Path.Combine(outputDirectory, "scene_search_summary.json")) ||
                 File.Exists(Path.Combine(outputDirectory, "candidate_temperature_curves.csv"))) return ResultModuleType.Scene;
+            if (File.Exists(Path.Combine(outputDirectory, "trajectory_run.json")) ||
+                File.Exists(Path.Combine(outputDirectory, "trajectory_history.csv")) &&
+                !File.Exists(Path.Combine(outputDirectory, "temperature_history.csv")) &&
+                !File.Exists(Path.Combine(outputDirectory, "infrared_response_history.csv"))) return ResultModuleType.Trajectory;
             if (File.Exists(Path.Combine(outputDirectory, "temperature_history.csv")) ||
                 File.Exists(Path.Combine(outputDirectory, "infrared_response_history.csv"))) return ResultModuleType.Forward;
             throw new InvalidDataException("无法识别模块类型：目录中没有受支持的结果标志文件。" );
@@ -46,6 +50,7 @@ namespace PreProcess.Wpf.Services.Results
         private static bool HasKnownMarker(string path)
         {
             return File.Exists(Path.Combine(path, "temperature_history.csv")) || File.Exists(Path.Combine(path, "infrared_response_history.csv")) ||
+                   File.Exists(Path.Combine(path, "trajectory_history.csv")) || File.Exists(Path.Combine(path, "trajectory_run.json")) ||
                    File.Exists(Path.Combine(path, "prediction_summary.json")) || File.Exists(Path.Combine(path, "evaluation_status.json")) ||
                    File.Exists(Path.Combine(path, "scene_search_summary.json"));
         }

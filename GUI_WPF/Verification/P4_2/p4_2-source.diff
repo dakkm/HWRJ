@@ -1,0 +1,969 @@
+﻿diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\MultiModuleTest\\MultiModuleTest.csproj"
+index e69de29..cb44646 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\MultiModuleTest\\MultiModuleTest.csproj"
+@@ -0,0 +1,49 @@
++﻿<?xml version="1.0" encoding="utf-8"?>
++<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
++  <PropertyGroup>
++    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
++    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
++    <ProjectGuid>{95C93C84-044B-4D79-A073-4770C625D623}</ProjectGuid>
++    <OutputType>Exe</OutputType>
++    <RootNamespace>MultiModuleTest</RootNamespace>
++    <AssemblyName>MultiModuleTest</AssemblyName>
++    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
++    <FileAlignment>512</FileAlignment>
++    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
++    <Deterministic>true</Deterministic>
++  </PropertyGroup>
++  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
++    <PlatformTarget>AnyCPU</PlatformTarget>
++    <DebugSymbols>true</DebugSymbols>
++    <DebugType>full</DebugType>
++    <Optimize>false</Optimize>
++    <OutputPath>bin\Debug\</OutputPath>
++    <DefineConstants>DEBUG;TRACE</DefineConstants>
++    <WarningLevel>4</WarningLevel>
++  </PropertyGroup>
++  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
++    <PlatformTarget>AnyCPU</PlatformTarget>
++    <DebugType>pdbonly</DebugType>
++    <Optimize>true</Optimize>
++    <OutputPath>bin\Release\</OutputPath>
++    <DefineConstants>TRACE</DefineConstants>
++    <WarningLevel>4</WarningLevel>
++  </PropertyGroup>
++  <ItemGroup>
++    <Reference Include="System" />
++    <Reference Include="System.Core" /><Reference Include="System.Web.Extensions" />
++  </ItemGroup>
++  <ItemGroup>
++    <Compile Include="Program.cs" />
++  </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="..\PreProcess.Wpf\PreProcess.Wpf.csproj">
++      <Project>{198C99F0-DA2B-4569-A331-9097E172F767}</Project>
++      <Name>PreProcess.Wpf</Name>
++    </ProjectReference>
++  </ItemGroup>
++  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
++</Project>
++
++
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\MultiModuleTest\\Program.cs"
+index e69de29..c0149d1 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\MultiModuleTest\\Program.cs"
+@@ -0,0 +1,143 @@
++using System;
++using System.Collections.Generic;
++using System.Globalization;
++using System.IO;
++using System.Linq;
++using System.Text;
++using System.Threading;
++using System.Threading.Tasks;
++using System.Web.Script.Serialization;
++using PreProcess.Wpf.Models;
++using PreProcess.Wpf.Services;
++using PreProcess.Wpf.Services.Execution;
++using PreProcess.Wpf.Services.Process;
++
++internal static class Program
++{
++    static int passed;
++    static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 33554432 };
++    static readonly string Self = System.Reflection.Assembly.GetExecutingAssembly().Location;
++    static void Check(bool ok, string message) { if (!ok) throw new Exception(message); Console.WriteLine("PASS " + message); passed++; }
++    static int Main(string[] args)
++    {
++        Console.OutputEncoding = new UTF8Encoding(false);
++        if (args.Length > 0 && args[0] == "-B") return Fixture(args);
++        try { Run(args).GetAwaiter().GetResult(); Console.WriteLine("TOTAL " + passed + " passed"); return 0; }
++        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
++    }
++    static void Write(string path, object value) { Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllText(path, Json.Serialize(value), new UTF8Encoding(false)); }
++    static Dictionary<string, object> Read(string path) => Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(path));
++    static async Task Run(string[] args)
++    {
++        string artifacts = Path.GetFullPath(args[0]); Directory.CreateDirectory(artifacts);
++        var paths = new BackendPaths { PackageRoot = Path.GetFullPath(args[1]), Python = args[2], RuntimeRoot = Path.Combine(artifacts, "runtime") };
++        var original = Directory.GetFiles(paths.PackageRoot, "*", SearchOption.AllDirectories).ToDictionary(x => x, RuntimePackage.Hash);
++        var task = ReferenceTaskLoader.Load(paths.PackageRoot);
++        string generated = new RequestGenerator().Generate(task);
++        new RequestGenerator().ValidateJson(generated);
++        var reference = Read(Path.Combine(paths.PackageRoot, "02-智能预测", "03-模型文件", "surrogate_reference_request.json"));
++        Check(Canonical(Json.DeserializeObject(generated)) == Canonical(reference), "Reference preset roundtrip equals all backend fields");
++        var logs = new List<string>(); var progress = new List<string>();
++        var prediction = new PredictionService();
++        prediction.Log += x => { lock (logs) logs.Add(x.Text); }; prediction.Progress += x => progress.Add(x.State);
++        var result = await prediction.RunAsync(task, "temperature", paths);
++        Console.WriteLine(Json.Serialize(result)); Write(Path.Combine(artifacts, "real02.json"), result);
++        Check(result.State == ProcessRunState.Completed && result.ExitCode == 0, "Real02 temperature entry succeeds");
++        Check(progress.Contains("temperature_completed") && progress.Contains("success"), "Real02 progress events read");
++        Check(logs.Any(x => x.Contains("GUI_PROGRESS")), "Real02 stdout streamed");
++        Check(Directory.Exists(result.ResultDirectory) && File.Exists(Path.Combine(result.ResultDirectory, "prediction_summary.json")), "Real02 result directory and envelope");
++        Check(File.Exists(Path.Combine(Path.GetDirectoryName(result.RequestPath), "run-location.json")) && result.EndedAt >= result.StartedAt && result.Module == "02", "Unified run record persisted");
++        string predictionDir = result.ResultDirectory;
++        var second = await prediction.RunAsync(task, "temperature", paths);
++        Check(second.State == ProcessRunState.Completed && second.RunId != result.RunId, "Repeated run permits mutable latest pointer and unique run ID");
++        var bad = await prediction.RunAsync(new TaskModel(), "temperature", paths);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode != 0 && bad.ResultDirectory == null, "Real02 rejects incompatible default without adopting stale result");
++        bad = await prediction.RunAsync(task, "unknown", paths);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode == null, "Invalid prediction mode rejected before launch");
++        string refDir = Path.Combine(artifacts, "SYNTHETIC_CONTRACT_FIXTURE", "reference");
++        string candDir = Path.Combine(artifacts, "SYNTHETIC_CONTRACT_FIXTURE", "candidate");
++        GenerateFixture(refDir); GenerateFixture(candDir);
++        var similarity = new SimilarityEvaluationService(); int events = 0; similarity.Progress += x => events++;
++        result = await similarity.RunAsync(refDir, candDir, null, paths);
++        Console.WriteLine(Json.Serialize(result)); Write(Path.Combine(artifacts, "real03.json"), result);
++        Check(result.State == ProcessRunState.Completed && result.ExitCode == 0, "Real03 evaluates explicitly synthetic contract fixtures");
++        Check(File.Exists(Path.Combine(result.ResultDirectory, "similarity_components.csv")) && File.Exists(Path.Combine(result.ResultDirectory, "similarity_summary.json")), "Real03 output artifacts exist (no GUI metric parsing)");
++        Check(events == 0, "Real03 has no GUI_PROGRESS; no invented percentage");
++        Check(Read(result.RequestPath).ContainsKey("reference_result") && !Read(result.RequestPath).ContainsKey("CASE"), "03 records result references rather than physical request");
++        bad = await similarity.RunAsync(refDir, predictionDir, null, paths);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode == null && bad.Message.Contains("02"), "Raw02 prediction input rejected with contract explanation");
++        bad = await similarity.RunAsync("missing", candDir, null, paths);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode == null, "Missing input directory rejected");
++        bad = await similarity.RunAsync(refDir, candDir, "missing-config.json", paths);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode == null, "Missing evaluation config rejected");
++        File.WriteAllText(Path.Combine(candDir, "infrared_response_history.csv"), "wrong\n1\n");
++        bad = await similarity.RunAsync(refDir, candDir, null, paths);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode == 2 && bad.ResultDirectory != null, "Authoritative03 column validation failure retains diagnostic run");
++        var scene = new SceneBuildService();
++        bad = await scene.RunAsync(new TaskModel(), 1, paths);
++        Write(Path.Combine(artifacts, "real04-rejection.json"), bad);
++        Check(bad.State == ProcessRunState.Failed && bad.ExitCode == 2, "Real04 rejects incompatible physical task");
++        bool reached = false;
++        using (var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
++        {
++            scene.Progress += x => { if (x.State == "checking_reference_cache") { reached = true; cancel.Cancel(); } };
++            result = await scene.RunAsync(task, 1, paths, cancel.Token);
++        }
++        Write(Path.Combine(artifacts, "real04-cancelled.json"), result);
++        Check(reached && result.State == ProcessRunState.Cancelled, "Real04 compatible request reaches internal chain and cancels via existing ProcessManager");
++        var request = Read(result.RequestPath);
++        Check((string)request["schema_version"] == "scene-search-request-v2" && File.Exists((string)request["input_file"]), "04 writes existing v2 request referencing shared forward input");
++        Check(Convert.ToDouble(((Dictionary<string, object>)request["similarity_requirement"])["required_percent"]) == task.Settings.SimilarityIndex, "04 uses task acceptance threshold");
++        foreach (string mode in new[] { "success", "incomplete", "missing", "mismatch", "proxy", "sleep" })
++        {
++            var fake = MakePackage(artifacts, mode);
++            if (mode == "sleep")
++            {
++                var running = new SceneBuildService(); var active = running.RunAsync(task, 1, fake);
++                bool rejected = false;
++                try { await new PredictionService().RunAsync(task, "temperature", fake); } catch (InvalidOperationException) { rejected = true; }
++                Check(rejected, "Global lease rejects parallel module execution"); running.Stop();
++                Check((await active).State == ProcessRunState.Cancelled, "Stop during module preparation cancels");
++                continue;
++            }
++            result = await new SceneBuildService().RunAsync(task, 1, fake);
++            Check(mode == "success" ? result.State == ProcessRunState.Completed : result.State == ProcessRunState.Failed, "04 fixture completion policy: " + mode);
++            if (mode == "incomplete") Check(result.ExitCode == 3 && result.ResultDirectory != null && result.Message.Contains("足量"), "Exit3 incomplete retains output without false success");
++        }
++        Check(original.Count == Directory.GetFiles(paths.PackageRoot, "*", SearchOption.AllDirectories).Length && original.All(x => RuntimePackage.Hash(x.Key) == x.Value), "Frozen backend all file hashes unchanged");
++    }
++    static string Canonical(object value)
++    {
++        var dict = value as IDictionary<string, object>;
++        if (dict != null) return "{" + String.Join(",", dict.OrderBy(x => x.Key).Select(x => x.Key + ":" + Canonical(x.Value))) + "}";
++        if (value is System.Collections.IEnumerable && !(value is string)) return "[" + String.Join(",", ((System.Collections.IEnumerable)value).Cast<object>().Select(Canonical)) + "]";
++        if (value is decimal || value is double || value is int || value is long) return Convert.ToDouble(value).ToString("G17", CultureInfo.InvariantCulture);
++        return Convert.ToString(value, CultureInfo.InvariantCulture);
++    }
++    static void GenerateFixture(string directory)
++    {
++        Directory.CreateDirectory(directory);
++        var temp = new StringBuilder("time_s,T_1\n");
++        var ir = new StringBuilder("case_id,frame_id,time_s,object_id,active_flag,released_flag,radiation_power_W,radiant_intensity_W_sr,detector_received_power_W,detector_irradiance_W_m2,screen_x_m,screen_y_m,in_screen_flag,range_to_detector_m\n");
++        for (int i = 0; i <= 100; i++)
++        { temp.AppendFormat(CultureInfo.InvariantCulture, "{0},{1}\n", i * 10, 300 + i * 0.1 + Math.Sin(i)); ir.AppendFormat(CultureInfo.InvariantCulture, "SYNTHETIC_TEST_ONLY,{0},{1},1,1,1,10,1,0.1,0.2,0,0,1,100\n", i, i * 10); }
++        File.WriteAllText(Path.Combine(directory, "temperature_history.csv"), temp.ToString()); File.WriteAllText(Path.Combine(directory, "infrared_response_history.csv"), ir.ToString());
++    }
++    static BackendPaths MakePackage(string artifacts, string mode)
++    {
++        string root = Path.Combine(artifacts, "fixture-packages", mode); Directory.CreateDirectory(Path.Combine(root, "04", "program"));
++        Write(Path.Combine(root, "config.json"), new { standard_entries = new Dictionary<string, string> { { "04_scene_search", "04/program/entry.txt" } } });
++        File.WriteAllText(Path.Combine(root, "04", "program", "entry.txt"), mode);
++        return new BackendPaths { PackageRoot = root, Python = Self, RuntimeRoot = Path.Combine(artifacts, "fixture-runtime", mode) };
++    }
++    static int Fixture(string[] args)
++    {
++        string mode = File.ReadAllText(args[2]); if (mode == "sleep") { Thread.Sleep(30000); return 0; }
++        if (mode == "missing") return 0;
++        string root = Path.Combine(Directory.GetParent(Path.GetDirectoryName(args[2])).FullName, "03-输出文件");
++        string id = "run_fixture_" + Guid.NewGuid().ToString("N"), dir = Path.Combine(root, "runs", id);
++        Write(Path.Combine(root, "latest_run.json"), new { run_id = id, run_dir = dir, status = mode == "incomplete" ? "incomplete" : "success" });
++        Write(Path.Combine(dir, "scene_search_summary.json"), new { run_id = mode == "mismatch" ? "other" : id, status = mode == "proxy" ? "ProxyOnlyCompleted" : "Completed" });
++        Console.WriteLine("GUI_PROGRESS {\"state\":\"finished\"}"); return mode == "incomplete" ? 3 : 0;
++    }
++}
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\MainWindow.xaml.cs" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\MainWindow.xaml.cs"
+index 9b7b5d1..12a5066 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\MainWindow.xaml.cs"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\MainWindow.xaml.cs"
+@@ -22,7 +22,7 @@ namespace PreProcess.Wpf
+         private void UpdateEditing()
+         {
+             var vm = (MainWindowViewModel)DataContext;
+-            EditorContent.IsEnabled = !vm.Execution.IsBusy || ReferenceEquals(vm.CurrentContent, vm.Execution);
++            EditorContent.IsEnabled = !vm.Execution.IsBusy || ReferenceEquals(vm.CurrentContent, vm.Execution) || vm.CurrentContent is CalculationOutputViewModel;
+         }
+         private async void OnClosing(object sender, CancelEventArgs e)
+         {
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\PreProcess.Wpf.csproj" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\PreProcess.Wpf.csproj"
+index 6937ee4..051a580 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\PreProcess.Wpf.csproj"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\PreProcess.Wpf.csproj"
+@@ -139,5 +139,5 @@
+ <Compile Include="Views\CalculationOutputView.xaml.cs"><DependentUpon>CalculationOutputView.xaml</DependentUpon></Compile>
+ </ItemGroup>
+ <ItemGroup><Compile Include="Services\Process\GuiProgressParser.cs" /><Compile Include="Services\Process\ProcessLogEvent.cs" /><Compile Include="Services\Process\ProcessManager.cs" /><Compile Include="Services\Process\ProcessProgressEvent.cs" /><Compile Include="Services\Process\ProcessRunRequest.cs" /><Compile Include="Services\Process\ProcessRunResult.cs" /><Compile Include="Services\Process\WindowsJobProcess.cs" /><Compile Include="Services\Execution\BackendPathResolver.cs" /><Compile Include="Services\Execution\ForwardSimulationService.cs" /><Compile Include="ViewModels\ForwardRunViewModel.cs" /><Page Include="Views\ForwardRunView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ForwardRunView.xaml.cs"><DependentUpon>ForwardRunView.xaml</DependentUpon></Compile></ItemGroup>
+-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
++<ItemGroup><Compile Include="Services\Execution\RunRecord.cs" /><Compile Include="Services\Execution\RuntimePackage.cs" /><Compile Include="Services\Execution\ModuleExecutionService.cs" /><Compile Include="Services\Execution\PredictionService.cs" /><Compile Include="Services\Execution\SimilarityEvaluationService.cs" /><Compile Include="Services\Execution\SceneBuildService.cs" /><Compile Include="Services\Execution\ReferenceTaskLoader.cs" /><Page Include="Views\ModuleExecutionPanel.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ModuleExecutionPanel.xaml.cs"><DependentUpon>ModuleExecutionPanel.xaml</DependentUpon></Compile></ItemGroup>  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+ </Project>
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs"
+index f987340..937d0ae 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs"
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Collections.Generic;
+ using System.IO;
+ using System.Text;
+@@ -10,21 +10,7 @@ using PreProcess.Wpf.Services.Process;
+ 
+ namespace PreProcess.Wpf.Services.Execution
+ {
+-    public sealed class ForwardRunRecord
+-    {
+-        public string RunId { get; set; }
+-        public string RequestPath { get; set; }
+-        public string BackendRequestPath { get; set; }
+-        public string RunDirectory { get; set; }
+-        public string ResultDirectory { get; set; }
+-        public DateTimeOffset StartedAt { get; set; }
+-        public DateTimeOffset EndedAt { get; set; }
+-        public ProcessRunState State { get; set; }
+-        public int? ExitCode { get; set; }
+-        public bool PrepareOnly { get; set; }
+-        public string Message { get; set; }
+-        public string Diagnostic { get; set; }
+-    }
++    public sealed class ForwardRunRecord : RunRecord { public ForwardRunRecord() { Module = "01"; } }
+ 
+     public sealed class ForwardSimulationService
+     {
+@@ -42,6 +28,8 @@ namespace PreProcess.Wpf.Services.Execution
+             int timeoutSeconds = 1800, CancellationToken cancellationToken = default(CancellationToken))
+         {
+             if (Interlocked.CompareExchange(ref active, 1, 0) != 0) throw new InvalidOperationException("正向计算正在运行，请等待完成或停止。");
++            var lease = ExecutionLease.TryEnter();
++            if (lease == null) { Volatile.Write(ref active, 0); throw new InvalidOperationException("已有模块正在运行。"); }
+             var record = new ForwardRunRecord { StartedAt = DateTimeOffset.Now, State = ProcessRunState.Preparing, PrepareOnly = prepareOnly };
+             StreamWriter stdout = null, stderr = null;
+             string submission = null, runRoot = null, ioError = null;
+@@ -71,6 +59,7 @@ namespace PreProcess.Wpf.Services.Execution
+             {
+                 if (launchingBackend && (state == ProcessRunState.Running || state == ProcessRunState.Stopping)) StateChanged?.Invoke(state);
+             };
++            using (lease)
+             using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+             {
+                 lock (gate) stop = cancellation;
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ModuleExecutionService.cs"
+index e69de29..675b8e4 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ModuleExecutionService.cs"
+@@ -0,0 +1,128 @@
++using System;
++using System.Collections.Generic;
++using System.IO;
++using System.Text;
++using System.Threading;
++using System.Threading.Tasks;
++using System.Web.Script.Serialization;
++using PreProcess.Wpf.Services.Process;
++
++namespace PreProcess.Wpf.Services.Execution
++{
++    // Shared execution bookkeeping ONLY. All OS process handling is still P4.1 ProcessManager.
++    public abstract class ModuleExecutionService
++    {
++        private readonly ProcessManager manager = new ProcessManager();
++        private readonly object gate = new object();
++        private CancellationTokenSource stop;
++        public event Action<ProcessLogEvent> Log;
++        public event Action<ProcessProgressEvent> Progress;
++        public event Action<ProcessRunState> StateChanged;
++        public void Stop() { lock (gate) stop?.Cancel(); manager.Stop(); }
++        protected async Task<RunRecord> ExecuteAsync(string module, BackendPaths paths,
++            Action<string, string, ProcessRunRequest, RunRecord> prepare, CancellationToken token, TimeSpan? limit = null)
++        {
++            var lease = ExecutionLease.TryEnter();
++            if (lease == null) throw new InvalidOperationException("已有模块正在运行，请等待或停止。");
++            var record = new RunRecord { Module = module, StartedAt = DateTimeOffset.Now, State = ProcessRunState.Preparing };
++            using (lease)
++            using (var cancel = CancellationTokenSource.CreateLinkedTokenSource(token))
++            {
++                lock (gate) stop = cancel;
++                string submission = null, latest = null, previous = null, outputRoot = null;
++                StreamWriter stdout = null, stderr = null;
++                object logGate = new object(); string storageError = null;
++                Action<ProcessLogEvent> onLog = item =>
++                {
++                    lock (logGate) try { (item.IsError ? stderr : stdout)?.WriteLine(item.Text); }
++                    catch (Exception ex) { storageError = ex.Message; manager.Stop(); }
++                    Log?.Invoke(item);
++                };
++                Action<ProcessProgressEvent> onProgress = item =>
++                {
++                    // 04 does not include module in its own progress. Nested 01 events remain identifiable.
++                    Progress?.Invoke(item);
++                };
++                Action<ProcessRunState> onState = state => { if (state == ProcessRunState.Running || state == ProcessRunState.Stopping) StateChanged?.Invoke(state); };
++                manager.Log += onLog; manager.Progress += onProgress; manager.StateChanged += onState;
++                try
++                {
++                    StateChanged?.Invoke(ProcessRunState.Preparing);
++                    ProcessRunRequest request = null;
++                    await Task.Run(() =>
++                    {
++                        paths = paths ?? new BackendPathResolver().Resolve();
++                        string package = RuntimePackage.Prepare(paths, cancel.Token);
++                        record.RuntimePackage = package;
++                        var config = ReadObject(Path.Combine(package, "config.json"));
++                        var entries = (Dictionary<string, object>)config["standard_entries"];
++                        string key = module == "02" ? "02_surrogate" : module == "03" ? "03_similarity" : "04_scene_search";
++                        string entry = Path.GetFullPath(Path.Combine(package, (string)entries[key]));
++                        if (!BackendPathResolver.IsWithin(entry, package) || !File.Exists(entry)) throw new FileNotFoundException("模块入口不存在或不在运行副本内。", entry);
++                        string moduleRoot = Directory.GetParent(Path.GetDirectoryName(entry)).FullName;
++                        outputRoot = Path.Combine(moduleRoot, module == "02" ? "04-输出文件" : "03-输出文件");
++                        latest = Path.Combine(outputRoot, "latest_run.json");
++                        previous = File.Exists(latest) ? File.ReadAllText(latest) : null;
++                        submission = Path.Combine(paths.RuntimeRoot, "requests", module, Guid.NewGuid().ToString("N"));
++                        Directory.CreateDirectory(submission);
++                        stdout = new StreamWriter(Path.Combine(submission, "stdout.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
++                        stderr = new StreamWriter(Path.Combine(submission, "stderr.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
++                        request = new ProcessRunRequest { Executable = paths.Python, WorkingDirectory = package,
++                            Arguments = new List<string> { "-B", "-u", entry }, Timeout = limit ?? TimeSpan.FromHours(6),
++                            EnvironmentVariables = new Dictionary<string, string> { { "PYTHONUTF8", "1" }, { "PYTHONIOENCODING", "utf-8" }, { "PYTHONDONTWRITEBYTECODE", "1" } } };
++                        prepare(package, submission, request, record);
++                        onLog(new ProcessLogEvent { Text = "Executable: " + request.Executable + "\nArguments: " + String.Join(" ", System.Linq.Enumerable.Select(request.Arguments, WindowsJobProcess.Quote)) });
++                    }, cancel.Token).ConfigureAwait(false);
++                    var result = await manager.RunAsync(request, cancel.Token).ConfigureAwait(false);
++                    record.State = result.State; record.ExitCode = result.ExitCode; record.Diagnostic = result.Error;
++                    if (storageError != null) throw new IOException(storageError);
++                    if (File.Exists(latest) && File.ReadAllText(latest) != previous)
++                    {
++                        var pointer = ReadObject(latest);
++                        string directory = pointer["run_dir"] as string;
++                        if (!BackendPathResolver.IsWithin(directory, Path.Combine(outputRoot, "runs")) || !Directory.Exists(directory))
++                            throw new InvalidDataException("后端返回的运行目录无效。");
++                        record.RunId = pointer["run_id"] as string;
++                        if (Path.GetFileName(directory) != record.RunId) throw new InvalidDataException("运行编号与目录不一致。");
++                        record.ResultDirectory = record.RunDirectory = directory;
++                        record.BackendStatus = pointer["status"] as string;
++                    }
++                    if (record.State == ProcessRunState.Completed)
++                    {
++                        if (record.RunDirectory == null || record.BackendStatus != "success") throw new InvalidDataException("退出码为0，但没有本次成功运行记录。");
++                        string envelopeName = module == "02" ? "prediction_summary.json" : module == "03" ? "evaluation_status.json" : "scene_search_summary.json";
++                        var envelope = ReadObject(Path.Combine(record.RunDirectory, envelopeName));
++                        string status = envelope["status"] as string;
++                        if ((string)envelope["run_id"] != record.RunId || (status != "success" && status != "Completed"))
++                            throw new InvalidDataException("模块完成信封不符合正式成功状态。");
++                        record.BackendStatus = status;
++                    }
++                    record.Message = record.State == ProcessRunState.Completed ? "模块运行完成。" : record.State == ProcessRunState.Cancelled ? "模块已停止。" :
++                        record.BackendStatus == "incomplete" ? "场景搜索未获得足量候选，请查看运行记录。" : "模块运行失败，请查看告警日志。";
++                }
++                catch (OperationCanceledException) { record.State = ProcessRunState.Cancelled; record.Message = "模块已停止。"; }
++                catch (Exception ex)
++                {
++                    record.State = ProcessRunState.Failed; record.Message = ex.Message; record.Diagnostic = ex.ToString();
++                    onLog(new ProcessLogEvent { IsError = true, Text = ex.ToString() });
++                }
++                finally
++                {
++                    record.EndedAt = DateTimeOffset.Now;
++                    manager.Log -= onLog; manager.Progress -= onProgress; manager.StateChanged -= onState;
++                    try
++                    {
++                        try { stdout?.Dispose(); } finally { stderr?.Dispose(); }
++                        if (submission != null) WriteObject(Path.Combine(submission, "run-location.json"), record);
++                    }
++                    catch (Exception ex) { record.State = ProcessRunState.Failed; record.Message = "运行记录保存失败：" + ex.Message; }
++                    lock (gate) stop = null;
++                    StateChanged?.Invoke(record.State);
++                }
++            }
++            return record;
++        }
++        internal static Dictionary<string, object> ReadObject(string path) => new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
++        internal static void WriteObject(string path, object value) => File.WriteAllText(path, new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.Serialize(value), new UTF8Encoding(false));
++    }
++}
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\PredictionService.cs"
+index e69de29..c366a2f 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\PredictionService.cs"
+@@ -0,0 +1,21 @@
++using System;
++using System.IO;
++using System.Threading;
++using System.Threading.Tasks;
++using PreProcess.Wpf.Models;
++namespace PreProcess.Wpf.Services.Execution
++{
++    public sealed class PredictionService : ModuleExecutionService
++    {
++        public Task<RunRecord> RunAsync(TaskModel task, string mode = "temperature", BackendPaths paths = null, CancellationToken token = default(CancellationToken))
++        {
++            return ExecuteAsync("02", paths, (package, submission, request, record) =>
++            {
++                if (mode != "temperature" && mode != "point-image" && mode != "both") throw new ArgumentException("请选择温度、点图像或两者预测模式。");
++                record.RequestPath = new RequestGenerator().Save(task, Path.Combine(submission, "request.json"));
++                request.Arguments.Add("--params-json"); request.Arguments.Add(record.RequestPath);
++                request.Arguments.Add("--mode"); request.Arguments.Add(mode);
++            }, token);
++        }
++    }
++}
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ReferenceTaskLoader.cs"
+index e69de29..8e34e18 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ReferenceTaskLoader.cs"
+@@ -0,0 +1,55 @@
++using System;
++using System.Collections;
++using System.Collections.Generic;
++using System.IO;
++using PreProcess.Wpf.Models;
++namespace PreProcess.Wpf.Services.Execution
++{
++    // Explicit user-selected preset, never an implicit prediction fallback or a second parameter model.
++    public static class ReferenceTaskLoader
++    {
++        public static TaskModel Load(string package)
++        {
++            string json = File.ReadAllText(Path.Combine(package, "02-智能预测", "03-模型文件", "surrogate_reference_request.json"));
++            new RequestGenerator().ValidateJson(json);
++            var root = RequestGenerator.Serializer().Deserialize<Dictionary<string, object>>(json);
++            var task = new TaskModel();
++            var section = (Dictionary<string, object>)root["CASE"];
++            task.Settings.Duration = Number(section, "TOTAL_TIME"); task.Settings.TargetCount = (int)Number(section, "NUM_SPHERES");
++            task.Settings.Metadata.Name = "后端固定参考任务";
++            var env = task.Environment;
++            section = (Dictionary<string, object>)root["ENVIRONMENT"];
++            env.SolarFlux = Number(section, "SOLAR_FLUX"); env.RadiationTemperature = Number(section, "ENVIRONMENT_TEMP"); Vector(env.SunDirection, section, "SOLAR_DIRECTION");
++            section = (Dictionary<string, object>)root["GROUP_STATE"];
++            Vector(task.Scene.Position, section, "GROUP_CENTER"); Vector(task.Scene.Direction, section, "GROUP_NORMAL"); Vector(task.Scene.Up, section, "GROUP_UP");
++            Vector(task.Scene.Velocity, section, "GROUP_VELOCITY"); Vector(task.Scene.AngularVelocity, section, "GROUP_ANGULAR_VELOCITY"); Vector(task.Scene.AngularAcceleration, section, "GROUP_ANGULAR_ACCELERATION");
++            section = (Dictionary<string, object>)root["OBSERVATION"];
++            Vector(env.ObserverPosition, section, "APERTURE_CENTER"); Vector(env.ObserverDirection, section, "APERTURE_NORMAL"); Vector(env.ObserverUp, section, "APERTURE_UP");
++            Vector(env.ObserverVelocity, section, "APERTURE_VELOCITY"); Vector(env.ObserverAngularVelocity, section, "APERTURE_ANGULAR_VELOCITY"); Vector(env.ObserverAngularAcceleration, section, "APERTURE_ANGULAR_ACCELERATION");
++            Vector(env.DetectorDirection, section, "DETECTOR_NORMAL"); Vector(env.DetectorUp, section, "DETECTOR_UP"); Vector(env.DetectorVelocity, section, "DETECTOR_VELOCITY");
++            Vector(env.DetectorAngularVelocity, section, "DETECTOR_ANGULAR_VELOCITY"); Vector(env.DetectorAngularAcceleration, section, "DETECTOR_ANGULAR_ACCELERATION");
++            env.ApertureSize = Number(section, "APERTURE_SIZE"); env.FocalLength = Number(section, "SPOT_FOCAL_LENGTH"); env.PlaneSize = Number(section, "SPOT_PLANE_SIZE");
++            env.ApertureTracking = (bool)section["APERTURE_TRACK_TARGET"]; env.DetectorTracking = (bool)section["DETECTOR_TRACK_TARGET"];
++            var physics = (IList)root["TARGET_PHYSICS"];
++            // Reference contract uses identical physics; verify before assigning the shared editor values.
++            var first = (Dictionary<string, object>)physics[0];
++            foreach (Dictionary<string, object> row in physics)
++                foreach (string name in first.Keys) if (name != "id" && Number(row, name) != Number(first, name)) throw new ArgumentException("参考物性并非统一值，不能作为统一预设载入。");
++            var p = task.Targets.Uniform;
++            p.Radius = Number(first, "r"); p.Density = Number(first, "rho"); p.HeatCapacity = Number(first, "cp"); p.InitialTemperature = Number(first, "t_init");
++            p.InternalPower = Number(first, "q_int"); p.Emissivity = Number(first, "eps_ir"); p.SolarAbsorption = Number(first, "alpha_s"); p.IrReflection = Number(first, "rho_ir");
++            foreach (Dictionary<string, object> row in (IList)root["TARGET_SCENE"])
++            {
++                var motion = task.IndividualTargets[(int)Number(row, "id") - 1].Motion;
++                motion.Position.X = Number(row, "x"); motion.Position.Y = Number(row, "y"); motion.Position.Z = Number(row, "z");
++                motion.Velocity.X = Number(row, "vx"); motion.Velocity.Y = Number(row, "vy"); motion.Velocity.Z = Number(row, "vz");
++                motion.Acceleration.X = Number(row, "ax"); motion.Acceleration.Y = Number(row, "ay"); motion.Acceleration.Z = Number(row, "az");
++                motion.ReleaseTime = Number(row, "release_time"); motion.Active = (bool)row["active"];
++            }
++            return task;
++        }
++        private static double Number(Dictionary<string, object> row, string key) => Convert.ToDouble(row[key]);
++        private static void Vector(Vector3 vector, Dictionary<string, object> row, string key)
++        { var values = (IList)row[key]; vector.X = Convert.ToDouble(values[0]); vector.Y = Convert.ToDouble(values[1]); vector.Z = Convert.ToDouble(values[2]); }
++    }
++}
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\RunRecord.cs"
+index e69de29..387d518 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\RunRecord.cs"
+@@ -0,0 +1,31 @@
++using System;
++using System.Threading;
++using PreProcess.Wpf.Services.Process;
++
++namespace PreProcess.Wpf.Services.Execution
++{
++    public class RunRecord
++    {
++        public string Module { get; set; }
++        public string RunId { get; set; }
++        public string RequestPath { get; set; }
++        public string BackendRequestPath { get; set; }
++        public string RunDirectory { get; set; }
++        public string ResultDirectory { get; set; }
++        public string RuntimePackage { get; set; }
++        public DateTimeOffset StartedAt { get; set; }
++        public DateTimeOffset EndedAt { get; set; }
++        public ProcessRunState State { get; set; }
++        public int? ExitCode { get; set; }
++        public bool PrepareOnly { get; set; }
++        public string Message { get; set; }
++        public string Diagnostic { get; set; }
++        public string BackendStatus { get; set; }
++    }
++    internal sealed class ExecutionLease : IDisposable
++    {
++        private static int busy;
++        internal static ExecutionLease TryEnter() => Interlocked.CompareExchange(ref busy, 1, 0) == 0 ? new ExecutionLease() : null;
++        public void Dispose() { Interlocked.Exchange(ref busy, 0); }
++    }
++}
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\RuntimePackage.cs"
+index e69de29..e1ab86e 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\RuntimePackage.cs"
+@@ -0,0 +1,58 @@
++using System;
++using System.Collections.Generic;
++using System.IO;
++using System.Linq;
++using System.Security.Cryptography;
++using System.Text;
++using System.Threading;
++using System.Web.Script.Serialization;
++
++namespace PreProcess.Wpf.Services.Execution
++{
++    public static class RuntimePackage
++    {
++        // Some official entries always write package-local latest_run/cache files despite CLI output overrides.
++        // Execute an exact, verified deployment copy instead of rewriting scripts or touching the frozen source.
++        public static string Prepare(BackendPaths paths, CancellationToken token)
++        {
++            if (BackendPathResolver.IsWithin(paths.RuntimeRoot, paths.PackageRoot)) throw new ArgumentException("运行区不能位于冻结后端内。");
++            string source = Path.GetFullPath(paths.PackageRoot).TrimEnd('\\');
++            var hashes = new SortedDictionary<string, string>(StringComparer.Ordinal);
++            foreach (string file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
++            {
++                token.ThrowIfCancellationRequested();
++                hashes.Add(file.Substring(source.Length + 1), Hash(file));
++            }
++            string manifest = new JavaScriptSerializer().Serialize(hashes);
++            string key;
++            using (var sha = SHA256.Create()) key = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(manifest))).Replace("-", "");
++            string root = Path.Combine(paths.RuntimeRoot, "backend", key, "package");
++            foreach (var item in hashes)
++            {
++                token.ThrowIfCancellationRequested();
++                string target = Path.Combine(root, item.Key);
++                Directory.CreateDirectory(Path.GetDirectoryName(target));
++                if (!File.Exists(target))
++                {
++                    using (var input = new FileStream(Path.Combine(source, item.Key), FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
++                    using (var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write)) input.CopyTo(output);
++                }
++                // These three existing pointer files are documented mutable runtime outputs.
++                bool pointer = item.Key == @"02-智能预测\04-输出文件\latest_run.json" ||
++                    item.Key == @"03-相似度评估\03-输出文件\latest_run.json" || item.Key == @"04-红外场景构建\03-输出文件\latest_run.json";
++                if (!pointer && Hash(target) != item.Value) throw new IOException("运行副本校验失败，请使用新的运行目录：" + item.Key);
++            }
++            File.WriteAllText(Path.Combine(Path.GetDirectoryName(root), "source-sha256.json"), manifest, new UTF8Encoding(false));
++            // Reject absolute resource paths, which could redirect copied programs back into frozen storage.
++            var cfg = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(root, "config.json")));
++            foreach (var item in cfg.Where(x => x.Value is string))
++                if (Path.IsPathRooted((string)item.Value)) throw new ArgumentException("后端配置含绝对资源路径，无法保证副本隔离：" + item.Key);
++            return root;
++        }
++        public static string Hash(string path)
++        {
++            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
++            using (var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "");
++        }
++    }
++}
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\SceneBuildService.cs"
+index e69de29..a7c4cee 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\SceneBuildService.cs"
+@@ -0,0 +1,25 @@
++using System;
++using System.IO;
++using System.Threading;
++using System.Threading.Tasks;
++using PreProcess.Wpf.Models;
++namespace PreProcess.Wpf.Services.Execution
++{
++    public sealed class SceneBuildService : ModuleExecutionService
++    {
++        public Task<RunRecord> RunAsync(TaskModel task, int candidates, BackendPaths paths = null, CancellationToken token = default(CancellationToken))
++        {
++            return ExecuteAsync("04", paths, (package, submission, request, record) =>
++            {
++                if (candidates <= 0) throw new ArgumentException("候选数量必须为正整数。");
++                string input = new RequestGenerator().Save(task, Path.Combine(submission, "request.json"));
++                record.RequestPath = Path.Combine(submission, "scene-search-request.json");
++                WriteObject(record.RequestPath, new { schema_version = "scene-search-request-v2", input_file = input,
++                    similarity_requirement = new { metric = "temperature_similarity", target_object_id = 1, required_percent = task.Settings.SimilarityIndex }, required_candidate_count = candidates });
++                request.Arguments.Add("--request"); request.Arguments.Add(record.RequestPath);
++                request.Arguments.Add("--config"); request.Arguments.Add(Path.Combine(package, "04-红外场景构建", "01-输入文件", "scene_search_config.json"));
++                // 04 owns the full 02/01/03 chain and its reference cache. No GUI re-orchestration.
++            }, token);
++        }
++    }
++}
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\SimilarityEvaluationService.cs"
+index e69de29..01f6502 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\SimilarityEvaluationService.cs"
+@@ -0,0 +1,30 @@
++using System;
++using System.IO;
++using System.Threading;
++using System.Threading.Tasks;
++namespace PreProcess.Wpf.Services.Execution
++{
++    public sealed class SimilarityEvaluationService : ModuleExecutionService
++    {
++        public Task<RunRecord> RunAsync(string reference, string candidate, string config = null, BackendPaths paths = null, CancellationToken token = default(CancellationToken))
++        {
++            return ExecuteAsync("03", paths, (package, submission, request, record) =>
++            {
++                CheckDirectory(reference); CheckDirectory(candidate);
++                string evaluation = String.IsNullOrWhiteSpace(config) ? Path.Combine(package, "03-相似度评估", "01-输入文件", "similarity_config.json") : Path.GetFullPath(config);
++                if (!File.Exists(evaluation)) throw new FileNotFoundException("评价配置不存在。", evaluation);
++                // This is invocation metadata, not a new physical request contract.
++                record.RequestPath = Path.Combine(submission, "evaluation-reference.json");
++                WriteObject(record.RequestPath, new { reference_result = Path.GetFullPath(reference), candidate_result = Path.GetFullPath(candidate), evaluation_config = evaluation });
++                foreach (string arg in new[] { "--mode", "similarity", "--reference-run", Path.GetFullPath(reference), "--candidate-run", Path.GetFullPath(candidate), "--config", evaluation }) request.Arguments.Add(arg);
++            }, token);
++        }
++        public static void CheckDirectory(string path)
++        {
++            if (String.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) throw new DirectoryNotFoundException("请选择有效的参考/候选结果目录。");
++            if (!File.Exists(Path.Combine(path, "temperature_history.csv")) || !File.Exists(Path.Combine(path, "infrared_response_history.csv")))
++                throw new ArgumentException("当前03入口要求01正式output目录（温度与红外历史文件）。02预测输出不兼容；不会转换或伪造物理结果。");
++            // Detailed column/time-axis checks remain with the authoritative backend extractor.
++        }
++    }
++}
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs"
+index bd089f9..c4e2057 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs"
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Collections.Concurrent;
+ using System.Threading.Tasks;
+ using System.Windows.Input;
+@@ -12,10 +12,29 @@ namespace PreProcess.Wpf.ViewModels
+     {
+         private readonly TaskEditorViewModel editor;
+         private readonly ForwardSimulationService service = new ForwardSimulationService();
++        private readonly PredictionService prediction = new PredictionService();
++        private readonly SimilarityEvaluationService similarity = new SimilarityEvaluationService();
++        private readonly SceneBuildService scene = new SceneBuildService();
+         private readonly Dispatcher dispatcher;
+         private readonly DispatcherTimer timer;
+         private readonly ConcurrentQueue<ProcessLogEvent> pending = new ConcurrentQueue<ProcessLogEvent>();
+-        private Task<ForwardRunRecord> current;
++        private Task<RunRecord> current;
++        private string selectedModule = "01";
++        public string[] Modules => new[] { "01", "02", "轨迹", "03", "04" };
++        public string SelectedModule { get => selectedModule; set { if (IsBusy || Array.IndexOf(Modules, value) < 0) return; selectedModule = value; Notify(); Notify(nameof(IsForward)); Notify(nameof(IsPrediction)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle)); } }
++        public bool IsForward => SelectedModule == "01" || SelectedModule == "轨迹";
++        public bool IsPrediction => SelectedModule == "02";
++        public bool IsSimilarity => SelectedModule == "03";
++        public bool IsScene => SelectedModule == "04";
++        public string ModuleTitle => IsPrediction ? "智能预测" : IsSimilarity ? "相似度评估" : IsScene ? "红外场景构建" : SelectedModule == "轨迹" ? "轨迹生成（调用正向计算）" : "正向计算";
++        public string[] PredictionModes => new[] { "temperature", "point-image", "both" };
++        public string PredictionMode { get; set; } = "temperature";
++        public string ReferenceDirectory { get; set; }
++        public string CandidateDirectory { get; set; }
++        public string EvaluationConfig { get; set; }
++        private int requiredCandidates = 10;
++        public int RequiredCandidates { get => requiredCandidates; set { if (value <= 0) throw new ArgumentException("候选数量必须为正整数。"); requiredCandidates = value; Notify(); } }
++        public ICommand LoadReferenceCommand { get; }
+         private bool busy, stopping, prepareOnly;
+         private string status = "就绪", log = "", warnings = "", location = "尚无运行目录";
+         public bool IsBusy { get => busy; private set { busy = value; Notify(); Notify(nameof(CanEdit)); CommandManager.InvalidateRequerySuggested(); } }
+@@ -25,7 +44,7 @@ namespace PreProcess.Wpf.ViewModels
+         public string LogText { get => log; private set { log = value; Notify(); } }
+         public string WarningText { get => warnings; private set { warnings = value; Notify(); } }
+         public string ResultLocation { get => location; private set { location = value; Notify(); } }
+-        public ForwardRunRecord LastRun { get; private set; }
++        public RunRecord LastRun { get; private set; }
+         public ICommand RunCommand { get; }
+         public ICommand StopCommand { get; }
+         public Func<bool> HasInputErrors { get; set; }
+@@ -36,6 +55,18 @@ namespace PreProcess.Wpf.ViewModels
+             dispatcher = Dispatcher.CurrentDispatcher;
+             RunCommand = new RunCommandImpl(async () => await StartAsync(), () => !IsBusy);
+             StopCommand = new RunCommandImpl(Stop, () => IsBusy && !stopping);
++            LoadReferenceCommand = new RunCommandImpl(() =>
++            {
++                if (System.Windows.MessageBox.Show("载入后端固定参考任务会替换当前内存任务。是否继续？", "载入参考任务", System.Windows.MessageBoxButton.YesNo) != System.Windows.MessageBoxResult.Yes) return;
++                try { var task = ReferenceTaskLoader.Load(new BackendPathResolver().Resolve().PackageRoot); task.Settings.SimilarityIndex = editor.Task.Settings.SimilarityIndex; editor.LoadTask(task); Status = "已载入后端参考任务。"; }
++                catch (Exception ex) { Status = ex.Message; }
++            }, () => !IsBusy);
++            foreach (var module in new ModuleExecutionService[] { prediction, similarity, scene })
++            {
++                module.Log += item => { pending.Enqueue(item); while (pending.Count > 2000) { ProcessLogEvent ignored; pending.TryDequeue(out ignored); } };
++                module.Progress += item => OnUi(() => { if (IsBusy && !stopping) Status = ModuleTitle + "：" + item.State; });
++                module.StateChanged += state => OnUi(() => { if (IsBusy && !stopping && (state == ProcessRunState.Preparing || state == ProcessRunState.Running)) Status = ModuleTitle + "：" + state; });
++            }
+             service.Log += item => { pending.Enqueue(item); while (pending.Count > 2000) { ProcessLogEvent ignored; pending.TryDequeue(out ignored); } };
+             service.Progress += item => OnUi(() =>
+             {
+@@ -53,7 +84,7 @@ namespace PreProcess.Wpf.ViewModels
+             });
+             service.StateChanged += state => OnUi(() =>
+             {
+-                if (state == ProcessRunState.Preparing) Status = "准备正向计算";
++                if (state == ProcessRunState.Preparing) Status = "准备" + ModuleTitle;
+                 else if (state == ProcessRunState.Running && !stopping) Status = "正向计算运行中";
+                 else if (state == ProcessRunState.Stopping) Status = "正在停止进程树";
+             });
+@@ -63,24 +94,31 @@ namespace PreProcess.Wpf.ViewModels
+         {
+             if (IsBusy) return;
+             if (HasInputErrors?.Invoke() == true) { Status = "请先修正标红的输入。"; return; }
+-            IsBusy = true; stopping = false; Status = "准备正向计算"; ResultLocation = "正在准备本次运行";
++            IsBusy = true; stopping = false; Status = "准备" + ModuleTitle; ResultLocation = "正在准备本次运行";
+             LastRun = null; LogText = ""; WarningText = "";
+             try
+             {
+-                current = service.RunAsync(editor.Task, PrepareOnly, paths);
++                current = RunSelectedAsync(paths);
+                 LastRun = await current;
+                 Status = LastRun.Message;
+                 ResultLocation = LastRun.ResultDirectory ?? LastRun.RunDirectory ?? "本次未产生结果目录";
+                 if (LastRun.State == ProcessRunState.Failed) pending.Enqueue(new ProcessLogEvent { IsError = true, Text = LastRun.Message });
+             }
+             catch (Exception ex)
+-            { Status = "正向计算无法启动，请查看告警。"; pending.Enqueue(new ProcessLogEvent { IsError = true, Text = ex.ToString() }); }
++            { Status = ModuleTitle + "无法启动，请查看告警。"; pending.Enqueue(new ProcessLogEvent { IsError = true, Text = ex.ToString() }); }
+             finally { current = null; IsBusy = false; stopping = false; Flush(); CommandManager.InvalidateRequerySuggested(); }
+         }
++        private async Task<RunRecord> RunSelectedAsync(BackendPaths paths)
++        {
++            if (IsPrediction) return await prediction.RunAsync(editor.Task, PredictionMode, paths);
++            if (IsSimilarity) return await similarity.RunAsync(ReferenceDirectory, CandidateDirectory, EvaluationConfig, paths);
++            if (IsScene) return await scene.RunAsync(editor.Task, RequiredCandidates, paths);
++            return await service.RunAsync(editor.Task, PrepareOnly, paths);
++        }
+         public void Stop()
+         {
+             if (!IsBusy) return;
+-            stopping = true; Status = "正在停止进程树"; CommandManager.InvalidateRequerySuggested(); service.Stop();
++            stopping = true; Status = "正在停止进程树"; CommandManager.InvalidateRequerySuggested(); service.Stop(); prediction.Stop(); similarity.Stop(); scene.Stop();
+         }
+         public async Task StopAndWaitAsync()
+         {
+@@ -101,7 +139,7 @@ namespace PreProcess.Wpf.ViewModels
+             if (errors.Length > 0) WarningText = Tail(WarningText + errors);
+         }
+         private static string Tail(string text) { return text.Length <= 64000 ? text : "（界面仅保留最近日志，完整记录见运行目录 requests 下日志）\n" + text.Substring(text.Length - 63000); }
+-        public void Dispose() { timer.Stop(); service.Stop(); }
++        public void Dispose() { timer.Stop(); service.Stop(); prediction.Stop(); similarity.Stop(); scene.Stop(); }
+ 
+         private sealed class RunCommandImpl : ICommand
+         {
+@@ -113,3 +151,4 @@ namespace PreProcess.Wpf.ViewModels
+         }
+     }
+ }
++
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs"
+index 5caab85..0feb376 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs"
+@@ -17,7 +17,7 @@ namespace PreProcess.Wpf.ViewModels
+         public NavigationItemViewModel SelectedPage
+         {
+             get => selectedPage;
+-            set { if (selectedPage == value || value == null) return; selectedPage = value; Notify(); Notify(nameof(CurrentContent)); }
++            set { if (selectedPage == value || value == null) return; selectedPage = value; if (pages.ContainsKey(value) && ReferenceEquals(pages[value], Execution)) Execution.SelectedModule = value.Title == "智能预测" ? "02" : value.Title == "相似度评估" ? "03" : value.Title == "红外场景构建" ? "04" : value.Title == "轨迹生成" ? "轨迹" : "01"; Notify(); Notify(nameof(CurrentContent)); }
+         }
+         private string status = "就绪 · 工作台预览";
+         public string Status { get => status; private set { status = value; Notify(); } }
+@@ -26,7 +26,7 @@ namespace PreProcess.Wpf.ViewModels
+ 
+         public MainWindowViewModel()
+         {
+-            Execution = new ForwardRunViewModel(Editor);
++            Execution = new ForwardRunViewModel(Editor); Editor.Execution = Execution;
+             Execution.PropertyChanged += (sender, args) => { if (args.PropertyName == nameof(ForwardRunViewModel.Status)) Status = Execution.Status; };
+             Editor.PropertyChanged += (sender, args) => { if (args.PropertyName == nameof(TaskEditorViewModel.Message)) Status = Editor.Message; };
+             var task = AddGroup("场景任务", "在这里组织场景任务的设置与数据。");
+@@ -51,7 +51,7 @@ namespace PreProcess.Wpf.ViewModels
+             pages.Add(task.Children[2], new SceneMotionViewModel(Editor));
+             pages.Add(task.Children[3], new EnvironmentObservationViewModel(Editor));
+             pages.Add(task.Children[4], new CalculationOutputViewModel(Editor));
+-            pages.Add(modules.Children[0], Execution);
++            foreach (var module in modules.Children) pages.Add(module, Execution);
+             SelectedPage = task.Children[0];
+             NavigateCommand = new RelayCommand(item => SelectedPage = item as NavigationItemViewModel);
+             PlaceholderCommand = new RelayCommand(action => Status = action + "：当前为工作台骨架，此操作尚未接入。");
+@@ -68,3 +68,4 @@ namespace PreProcess.Wpf.ViewModels
+         }
+     }
+ }
++
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\ViewModels\\TaskEditorViewModel.cs" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\TaskEditorViewModel.cs"
+index 1843a4b..0f36fca 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\ViewModels\\TaskEditorViewModel.cs"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\TaskEditorViewModel.cs"
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Collections.Specialized;
+ using System.Windows.Input;
+ using PreProcess.Wpf.Models;
+@@ -7,6 +7,7 @@ namespace PreProcess.Wpf.ViewModels
+ {
+     public sealed class TaskEditorViewModel : ObservableObject
+     {
++        public ForwardRunViewModel Execution { get; internal set; }
+         private TaskModel task;
+         public TaskModel Task { get => task; private set { task = value; Notify(); } }
+         private TargetInstance selectedTarget;
+@@ -28,9 +29,12 @@ namespace PreProcess.Wpf.ViewModels
+             SaveCommand = new RelayCommand(_ => Message = "有效输入已保留在内存；红框输入未写入，尚未保存到文件。");
+         }
+         private void Reset()
++        { LoadTask(new TaskModel()); }
++        public void LoadTask(TaskModel value)
+         {
++            if (value == null) throw new ArgumentNullException(nameof(value));
+             if (Task != null) ((INotifyCollectionChanged)Task.IndividualTargets).CollectionChanged -= TargetsChanged;
+-            Task = new TaskModel();
++            Task = value ?? throw new ArgumentNullException(nameof(value));
+             ((INotifyCollectionChanged)Task.IndividualTargets).CollectionChanged += TargetsChanged;
+             SelectedTarget = Task.IndividualTargets[0];
+         }
+@@ -57,3 +61,4 @@ namespace PreProcess.Wpf.ViewModels
+     public sealed class CalculationOutputViewModel : TaskPageViewModel
+     { public CalculationOutputViewModel(TaskEditorViewModel editor) : base(editor, "计算与输出") { } }
+ }
++
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\Views\\CalculationOutputView.xaml" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\CalculationOutputView.xaml"
+index d1bd24f..b74eab8 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\Views\\CalculationOutputView.xaml"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\CalculationOutputView.xaml"
+@@ -3,8 +3,8 @@
+   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+     <StackPanel Margin="18">
+       <TextBlock Text="计算与输出" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
+-      <TextBlock Text="以下为五个模块的说明与参数预留区域。本阶段不执行计算，也不读取结果。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
+-      <GroupBox Header="生成任务请求" Padding="10" Margin="0,8">
++      <TextBlock Text="选择模块并运行当前任务；结果目录和日志在运行后保留。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
++      <GroupBox Header="生成任务请求" Padding="10" Margin="0,8" IsEnabled="{Binding Editor.Execution.CanEdit}">
+         <StackPanel>
+           <TextBlock Text="正向计算与智能预测共享同一份任务请求。预测与场景搜索仍受后端固定场景限制；生成成功不代表满足预测适用条件。相似度评估使用结果文件。" TextWrapping="Wrap" />
+           <TextBlock Text="生成内容使用各页面已接受的有效输入；无效输入不会写入任务。" TextWrapping="Wrap" />
+@@ -15,7 +15,7 @@
+           <TextBlock Text="此阈值保留为场景搜索验收条件，不写入正向请求。" TextWrapping="Wrap" />
+         </StackPanel>
+       </GroupBox>
+-      <ItemsControl ItemsSource="{Binding Editor.Task.Calculation.Modules}">
++      <views:ModuleExecutionPanel DataContext="{Binding Editor.Execution}"/><ItemsControl ItemsSource="{Binding Editor.Task.Calculation.Modules}">
+         <ItemsControl.ItemTemplate>
+           <DataTemplate>
+             <GroupBox Header="{Binding Name}" Margin="0,10" Padding="10">
+@@ -26,7 +26,7 @@
+                 <TextBlock Text="输出说明" FontWeight="SemiBold" Margin="0,12,0,4" />
+                 <TextBlock Text="{Binding Output}" TextWrapping="Wrap" />
+                 <Border Background="#F5F8FC" Padding="12" Margin="0,12,0,0">
+-                  <TextBlock Text="参数区域 · 后续完善" TextWrapping="Wrap" />
++                  <TextBlock Text="运行操作见上方模块选择区" TextWrapping="Wrap" />
+                 </Border>
+               </StackPanel>
+             </GroupBox>
+@@ -36,3 +36,4 @@
+     </StackPanel>
+   </ScrollViewer>
+ </UserControl>
++
+diff --git "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\Views\\ForwardRunView.xaml" "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml"
+index 92bdb62..2816f47 100644
+--- "a/GUI_WPF\\Verification\\P4_2\\before\\PreProcess.Wpf\\Views\\ForwardRunView.xaml"
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml"
+@@ -1,12 +1,3 @@
+-<UserControl x:Class="PreProcess.Wpf.Views.ForwardRunView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+- <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18">
+-  <TextBlock Text="正向计算" FontSize="24" FontWeight="SemiBold"/>
+-  <TextBlock Text="使用当前场景任务生成请求并调用正向计算程序。请在运行前检查任务设置、目标、场景和观测参数。" TextWrapping="Wrap" Margin="0,12"/>
+-  <CheckBox Content="仅准备输入（不执行求解）" IsChecked="{Binding PrepareOnly}" IsEnabled="{Binding CanEdit}" Margin="0,8"/>
+-  <StackPanel Orientation="Horizontal"><Button Content="运行正向计算" Command="{Binding RunCommand}" Padding="12,6" Margin="0,8,12,8"/><Button Content="停止" Command="{Binding StopCommand}" Padding="12,6"/></StackPanel>
+-  <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12"/>
+-  <TextBlock Text="本次运行位置" FontWeight="SemiBold"/>
+-  <TextBox Text="{Binding ResultLocation, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,8"/>
+-  <TextBlock Text="日志与告警在底部实时更新。进度表示当前阶段；输入准备完成不代表求解完成。结果绘制将在后续阶段接入。" TextWrapping="Wrap"/>
+- </StackPanel></ScrollViewer>
+-</UserControl>
++﻿<UserControl x:Class="PreProcess.Wpf.Views.ForwardRunView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:PreProcess.Wpf.Views">
++ <ScrollViewer VerticalScrollBarVisibility="Auto"><views:ModuleExecutionPanel/></ScrollViewer>
++</UserControl>
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ModuleExecutionPanel.xaml"
+index e69de29..f9a98bb 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ModuleExecutionPanel.xaml"
+@@ -0,0 +1,35 @@
++<UserControl x:Class="PreProcess.Wpf.Views.ModuleExecutionPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
++ <UserControl.Resources><BooleanToVisibilityConverter x:Key="Visible"/></UserControl.Resources>
++ <StackPanel Margin="18">
++  <TextBlock Text="{Binding ModuleTitle}" FontSize="24" FontWeight="SemiBold"/>
++  <StackPanel IsEnabled="{Binding CanEdit}">
++   <TextBlock Text="选择运行模块：01 正向计算 / 02 智能预测 / 轨迹 / 03 相似度评估 / 04 场景构建" TextWrapping="Wrap" Margin="0,8"/>
++   <ComboBox ItemsSource="{Binding Modules}" SelectedItem="{Binding SelectedModule}"/>
++   <StackPanel Visibility="{Binding IsForward, Converter={StaticResource Visible}}">
++    <TextBlock Text="使用当前任务调用正向入口。轨迹由正向求解器生成；本页不执行轨迹后处理。" TextWrapping="Wrap" Margin="0,8"/>
++    <CheckBox Content="仅准备输入（不执行求解）" IsChecked="{Binding PrepareOnly}" Margin="0,8"/>
++   </StackPanel>
++   <StackPanel Visibility="{Binding IsPrediction, Converter={StaticResource Visible}}">
++    <TextBlock Text="预测使用同一任务。后端只接受固定参考场景及允许范围内的统一物性。点图像另需后端模型依赖。" TextWrapping="Wrap" Margin="0,8"/>
++    <ComboBox ItemsSource="{Binding PredictionModes}" SelectedItem="{Binding PredictionMode}"/>
++    <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
++   </StackPanel>
++   <StackPanel Visibility="{Binding IsSimilarity, Converter={StaticResource Visible}}">
++    <TextBlock Text="当前评价器要求两份正式正向 output 目录（温度和红外历史文件）。原始 02 预测目录不符合该合同；不会自动转换或补算。" TextWrapping="Wrap" Margin="0,8"/>
++    <TextBlock Text="Reference result 目录"/><TextBox Text="{Binding ReferenceDirectory, UpdateSourceTrigger=PropertyChanged}"/>
++    <TextBlock Text="Candidate result 目录"/><TextBox Text="{Binding CandidateDirectory, UpdateSourceTrigger=PropertyChanged}"/>
++    <TextBlock Text="Evaluation config 路径（留空使用后端默认）"/><TextBox Text="{Binding EvaluationConfig, UpdateSourceTrigger=PropertyChanged}"/>
++   </StackPanel>
++   <StackPanel Visibility="{Binding IsScene, Converter={StaticResource Visible}}">
++    <TextBlock Text="直接调用场景搜索入口，由后端完成预测、正向复核和评价。验收阈值取自计算与输出页面的当前任务；本操作会启动实际求解。" TextWrapping="Wrap" Margin="0,8"/>
++    <TextBlock Text="所需候选数量"/><TextBox Text="{Binding RequiredCandidates, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
++    <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
++   </StackPanel>
++  </StackPanel>
++  <StackPanel Orientation="Horizontal"><Button Content="运行所选模块" Command="{Binding RunCommand}" Padding="12,6" Margin="0,8,12,8"/><Button Content="停止" Command="{Binding StopCommand}" Padding="12,6"/></StackPanel>
++  <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12"/>
++  <TextBlock Text="本次运行位置" FontWeight="SemiBold"/>
++  <TextBox Text="{Binding ResultLocation, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,8"/>
++  <TextBlock Text="日志与告警在底部更新。03 入口未提供阶段进度，运行期间显示运行状态。" TextWrapping="Wrap"/>
++ </StackPanel>
++</UserControl>
+diff --git a/GUI_WPF/Verification/P4_2/empty.txt "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ModuleExecutionPanel.xaml.cs"
+index e69de29..cfb1b6b 100644
+--- a/GUI_WPF/Verification/P4_2/empty.txt
++++ "b/GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ModuleExecutionPanel.xaml.cs"
+@@ -0,0 +1,6 @@
++using System.Windows.Controls;
++namespace PreProcess.Wpf.Views
++{
++    public partial class ModuleExecutionPanel : UserControl
++    { public ModuleExecutionPanel() { InitializeComponent(); } }
++}

@@ -1,8 +1,8 @@
 {
   "module": "03",
-  "run_id": "run_20260911_151825_9403cacb",
-  "run_dir": "C:\\Users\\PC\\Desktop\\新建文件夹\\程序说明\\03-相似度评估\\03-输出文件\\runs\\run_20260911_151825_9403cacb",
+  "run_id": "run_20260912_074654_cb97c927",
+  "run_dir": "C:\\Users\\PC\\Desktop\\新建文件夹\\源码_v1.0.0_20260911\\03-相似度评估\\03-输出文件\\runs\\run_20260912_074654_cb97c927",
   "status": "success",
-  "mode": "features",
-  "timestamp": 1789111105.891509
+  "mode": "similarity",
+  "timestamp": 1789170414.7908247
 }

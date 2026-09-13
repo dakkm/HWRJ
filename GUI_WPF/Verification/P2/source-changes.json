@@ -1,0 +1,114 @@
+﻿[
+    {
+        "Change":  "Modified",
+        "Path":  "MainWindow.xaml"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "PreProcess.Wpf.csproj"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\BindableModel.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\CalculationSettings.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\EnvironmentObservationSettings.cs"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Models\\README.md"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\SceneMotionSettings.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\TargetPhysics.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\TaskModel.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\Vector3.cs"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Resources\\WorkbenchStyles.xaml"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Services\\README.md"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "ViewModels\\MainWindowViewModel.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "ViewModels\\TaskEditorViewModel.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\CalculationOutputView.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\CalculationOutputView.xaml.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\EnvironmentObservationView.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\EnvironmentObservationView.xaml.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\SceneMotionView.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\SceneMotionView.xaml.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\TargetPhysicsEditor.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\TargetPhysicsEditor.xaml.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\TargetSettingsView.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\TargetSettingsView.xaml.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\TaskSettingsView.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\TaskSettingsView.xaml.cs"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\Vector3Editor.xaml"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Views\\Vector3Editor.xaml.cs"
+    }
+]

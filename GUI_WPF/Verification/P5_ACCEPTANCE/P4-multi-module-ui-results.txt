@@ -1,0 +1,18 @@
+﻿PASS Module navigation 01
+PASS Module navigation 02
+PASS Module navigation 轨迹
+PASS Module navigation 03
+PASS Module navigation 04
+PASS Calculation page shares execution instance
+PASS 02 busy command state
+PASS Module cannot change during active run
+PASS Calculation page stop stays available while running
+PASS GUI02 real execution completed
+PASS GUI02 log progress and directory binding
+PASS 02 controls restored
+PASS GUI03 real execution completed with contract fixture
+PASS GUI03 completion status and directory
+PASS GUI03 incompatible result warning
+PASS GUI04 real entry failure and stderr visible
+PASS Invalid candidate count blocks launch
+PASS Closing04 while preparing waits for cancellation

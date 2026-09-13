@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-"""Extract formal temperature/infrared features from one 01-forward run directory.
+"""Extract temperature/infrared features from a forward-response output directory.
 
-Formal 01 inputs expected in ``run_dir``:
-- temperature_history.csv
-- infrared_response_history.csv
-- frame_summary.csv (optional cross-check / auxiliary values)
-- run_metadata.json (optional)
+Supported producers:
+- module 01 formal ``output`` directory;
+- module 02 v1.0.1+ ``run_xxx/output`` compatibility directory.
 
-The extractor intentionally requires ``radiant_intensity_W_sr`` in the infrared
-business output. It does not silently reconstruct that physical quantity from a
-legacy column, so an outdated 01 executable is detected rather than hidden.
+Both producers use the same core filenames/column names consumed by 03.  Module
+02 does not currently predict every source-radiation quantity.  Such explicitly
+unavailable fields are allowed to be blank and are carried as NaN so the related
+similarity components become invalid/non-participating rather than being
+fabricated as zeros.
 """
 
 import json
@@ -77,6 +77,41 @@ def _numeric(df: pd.DataFrame, columns: list[str], label: str) -> pd.DataFrame:
     return out
 
 
+def _numeric_allow_missing(df: pd.DataFrame, columns: list[str], label: str) -> pd.DataFrame:
+    """Convert numeric columns while allowing explicit missing values.
+
+    Missing values represent quantities that the producing model does not provide.
+    Infinite values are still rejected. Non-empty nonnumeric text is rejected.
+    """
+    out = df.copy()
+    for col in columns:
+        original = out[col].copy()
+        converted = pd.to_numeric(original, errors="coerce")
+        nonempty = original.notna() & original.astype(str).str.strip().ne("")
+        bad_text = nonempty & converted.isna()
+        if bad_text.any():
+            examples = original.loc[bad_text].head(5).tolist()
+            raise FeatureExtractionError(f"{label}.{col} contains nonnumeric values; examples={examples}")
+        vals = converted.to_numpy(dtype=float)
+        if np.isinf(vals).any():
+            raise FeatureExtractionError(f"{label}.{col} contains Inf")
+        out[col] = converted
+    return out
+
+
+def _load_output_contract(run_dir: Path) -> dict[str, Any]:
+    path = run_dir / "output_contract.json"
+    if not path.is_file():
+        return {"source_module": "01", "schema_version": "01-formal-output-legacy"}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise FeatureExtractionError(f"Invalid output_contract.json: {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise FeatureExtractionError("output_contract.json must contain a JSON object")
+    return data
+
+
 def _strict_time_axis(values: np.ndarray, label: str) -> None:
     if len(values) < 2:
         raise FeatureExtractionError(f"{label} requires at least 2 time points")
@@ -104,7 +139,7 @@ def finite_difference(time_s: np.ndarray, values: np.ndarray) -> np.ndarray:
 def _temperature_table(run_dir: Path, cfg: dict[str, Any]) -> pd.DataFrame:
     path = run_dir / "temperature_history.csv"
     if not path.is_file():
-        raise FeatureExtractionError(f"Missing formal 01 output: {path}")
+        raise FeatureExtractionError(f"Missing forward-response output: {path}")
     df = _read_csv_compatible(path)
     _require_columns(df, ["time_s"], "temperature_history.csv")
     object_id = int(cfg["temperature"]["object_id"])
@@ -127,10 +162,10 @@ def _temperature_table(run_dir: Path, cfg: dict[str, Any]) -> pd.DataFrame:
     )
 
 
-def _infrared_table(run_dir: Path) -> pd.DataFrame:
+def _infrared_table(run_dir: Path, output_contract: dict[str, Any]) -> pd.DataFrame:
     path = run_dir / "infrared_response_history.csv"
     if not path.is_file():
-        raise FeatureExtractionError(f"Missing formal 01 output: {path}")
+        raise FeatureExtractionError(f"Missing forward-response output: {path}")
     df = _read_csv_compatible(path)
     required = [
         "case_id",
@@ -149,8 +184,24 @@ def _infrared_table(run_dir: Path) -> pd.DataFrame:
         "range_to_detector_m",
     ]
     _require_columns(df, required, "infrared_response_history.csv")
-    num_cols = [c for c in required if c != "case_id"]
-    df = _numeric(df, num_cols, "infrared_response_history.csv")
+    # Structural/state/detector-side fields are always mandatory and finite.
+    # Missing source-radiation fields are allowed only when the producer explicitly
+    # declares them unavailable in output_contract.json.  Legacy/normal 01 output
+    # therefore retains the original strict validation behavior.
+    structural_cols = [
+        "frame_id", "time_s", "object_id", "active_flag", "released_flag",
+        "detector_received_power_W", "detector_irradiance_W_m2",
+        "screen_x_m", "screen_y_m", "in_screen_flag", "range_to_detector_m",
+    ]
+    source_radiation_cols = ["radiation_power_W", "radiant_intensity_W_sr"]
+    declared_unavailable = set(
+        output_contract.get("infrared_contract", {}).get("unavailable_fields", [])
+    )
+    allowed_missing = [c for c in source_radiation_cols if c in declared_unavailable]
+    strict_source = [c for c in source_radiation_cols if c not in declared_unavailable]
+    df = _numeric(df, structural_cols + strict_source, "infrared_response_history.csv")
+    if allowed_missing:
+        df = _numeric_allow_missing(df, allowed_missing, "infrared_response_history.csv")
     if df.duplicated(["time_s", "object_id"]).any():
         raise FeatureExtractionError("infrared_response_history.csv has duplicate (time_s, object_id) keys")
     return df.sort_values(["object_id", "time_s"], kind="mergesort").reset_index(drop=True)
@@ -225,6 +276,28 @@ def _gray_value(value: float, lo: float, hi: float, bit_depth: int) -> int:
     return int(round(u * max_gray))
 
 
+def _complete_sum_or_nan(series: pd.Series, empty_value: float = 0.0) -> float:
+    """Sum only when every required active value is available.
+
+    A partial/all-missing source-radiation field must not silently become zero.
+    """
+    if len(series) == 0:
+        return float(empty_value)
+    vals = pd.to_numeric(series, errors="coerce").to_numpy(float)
+    if not np.isfinite(vals).all():
+        return float("nan")
+    return float(vals.sum())
+
+
+def _complete_max_or_nan(series: pd.Series, empty_value: float = 0.0) -> float:
+    if len(series) == 0:
+        return float(empty_value)
+    vals = pd.to_numeric(series, errors="coerce").to_numpy(float)
+    if not np.isfinite(vals).all():
+        return float("nan")
+    return float(vals.max())
+
+
 def _scene_features(ir: pd.DataFrame, cfg: dict[str, Any]) -> pd.DataFrame:
     nx, ny, width, height, dx, dy = _screen_geometry(cfg)
     pixel_area = dx * dy
@@ -237,9 +310,9 @@ def _scene_features(ir: pd.DataFrame, cfg: dict[str, Any]) -> pd.DataFrame:
         active = g.loc[physically_active]
         on_screen = active.loc[active["in_screen_flag"] == 1].copy()
 
-        total_radiation_power = float(active["radiation_power_W"].sum()) if len(active) else 0.0
-        total_radiant_intensity = float(active["radiant_intensity_W_sr"].sum()) if len(active) else 0.0
-        peak_radiant_intensity = float(active["radiant_intensity_W_sr"].max()) if len(active) else 0.0
+        total_radiation_power = _complete_sum_or_nan(active["radiation_power_W"])
+        total_radiant_intensity = _complete_sum_or_nan(active["radiant_intensity_W_sr"])
+        peak_radiant_intensity = _complete_max_or_nan(active["radiant_intensity_W_sr"])
         total_received = float(on_screen["detector_received_power_W"].sum()) if len(on_screen) else 0.0
 
         centroid_x = np.nan
@@ -336,8 +409,9 @@ def extract_run_features(run_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     if not run_dir.is_dir():
         raise FeatureExtractionError(f"run_dir is not a directory: {run_dir}")
 
+    output_contract = _load_output_contract(run_dir)
     temp = _temperature_table(run_dir, cfg)
-    ir = _add_object_rates(_infrared_table(run_dir))
+    ir = _add_object_rates(_infrared_table(run_dir, output_contract))
     scene = _scene_features(ir, cfg)
 
     # Attach the configured temperature to the infrared time grid by exact time key only.
@@ -357,6 +431,11 @@ def extract_run_features(run_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
         "scene_times_missing_temperature": missing_temp,
         "gray_valid": bool(scene["gray_valid"].eq(1).all()),
         "gray_invalid_reason": "" if scene["gray_valid"].eq(1).all() else str(scene["gray_invalid_reason"].iloc[0]),
+        "source_module": str(output_contract.get("source_module", "01")),
+        "source_output_schema": str(output_contract.get("schema_version", "01-formal-output-legacy")),
+        "declared_unavailable_ir_fields": list(
+            output_contract.get("infrared_contract", {}).get("unavailable_fields", [])
+        ),
     }
     return {
         "feature_timeseries": feature,

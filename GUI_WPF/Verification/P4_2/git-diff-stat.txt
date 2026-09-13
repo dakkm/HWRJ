@@ -1,0 +1,14 @@
+﻿ .docs/01_architecture.md                           | 283 +--------------------
+ .docs/02_workflow.md                               | 194 +-------------
+ .docs/03_experiments.md                            |  74 +-----
+ .docs/04_decisions.md                              | 206 +--------------
+ .docs/05_known_issues.md                           | 131 +---------
+ .docs/06_prompt_log.md                             | 187 +-------------
+ .docs/07_task_editor_v1_report.md                  | 168 +-----------
+ GUI_WPF/PreProcess.Wpf/PreProcess.Wpf.sln          |   6 +
+ GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.config   |  14 +-
+ GUI_WPF/PreProcess.Wpf/PreProcess.Wpf/App.xaml     |  21 +-
+ .../PreProcess.Wpf/PreProcess.Wpf/MainWindow.xaml  |  78 +++++-
+ .../PreProcess.Wpf/MainWindow.xaml.cs              |  76 ++++--
+ .../PreProcess.Wpf/PreProcess.Wpf.csproj           | 242 +++++++++++-------
+ 13 files changed, 302 insertions(+), 1378 deletions(-)

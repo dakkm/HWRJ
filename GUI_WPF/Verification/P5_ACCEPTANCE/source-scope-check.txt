@@ -1,0 +1,34 @@
+P5 overall acceptance source-scope summary
+Generated from existing P5.1/P5.2/P5.3 scope evidence and the frozen protected-directory manifests.
+
+Production changes are confined to GUI_WPF/PreProcess.Wpf/PreProcess.Wpf:
+  Models/Results/ResultData.cs
+  Models/Results/ResultModuleType.cs
+  Models/Results/RunResult.cs
+  Models/Results/TemperatureResult.cs
+  Models/Results/TrajectoryResult.cs
+  Models/Results/InfraredResult.cs
+  Models/Results/SimilarityResult.cs
+  Models/Results/SceneResult.cs
+  Services/Results/ResultDirectoryManager.cs
+  Services/Results/ResultReadException.cs
+  Services/Results/ResultReaderBase.cs
+  Services/Results/ForwardResultReader.cs
+  Services/Results/PredictionResultReader.cs
+  Services/Results/SimilarityResultReader.cs
+  Services/Results/SceneResultReader.cs
+  Services/Results/ResultReader.cs
+  ViewModels/ResultBrowserViewModel.cs
+  Views/ResultBrowserView.xaml
+  Views/ResultBrowserView.xaml.cs
+  ViewModels/ForwardRunViewModel.cs
+  MainWindow.xaml
+  PreProcess.Wpf.csproj
+
+Test-only additions are confined to GUI_WPF/PreProcess.Wpf/{ResultModelTest,ResultReaderTest,ResultViewTest}.
+Verification logs and manifests are confined to GUI_WPF/Verification/.
+
+Protected directories:
+  coreprogram: 119 files baseline/current; 0 SHA-256 differences.
+  GUI_MFC_Legacy: not extracted or written in this workspace. Baseline manifest contains 1743 files.
+  Backend output formats: no change.

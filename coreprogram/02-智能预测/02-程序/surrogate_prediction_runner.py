@@ -6,6 +6,10 @@ from __future__ import annotations
 本入口先调用 surrogate_standard_input.py 复用 01 输入校验并检查当前冻结代理模型适用域，
 再将完整业务输入转换为模型所需特征。
 
+成功运行后还会在当前 run 目录下生成 output\，其中 temperature_history.csv
+和 infrared_response_history.csv 使用与 01/03 对接一致的核心文件名与列合同。
+当前冻结模型不能提供的源辐射量保持为空，不伪造成物理结果。
+
 支持模式：temperature / point-image / both。
 
 正式调用：
@@ -27,6 +31,7 @@ import numpy as np
 import pandas as pd
 
 import surrogate_standard_input as standard_input
+import surrogate_forward_output_contract as forward_output_contract
 
 PROGRAM_DIR = Path(__file__).resolve().parent
 MODULE_ROOT = PROGRAM_DIR.parent
@@ -204,7 +209,18 @@ def predict_point_image(params: dict[str, float], run_dir: Path) -> dict[str, An
     if not np.isfinite(y).all():
         raise RuntimeError("点图像代理输出包含 NaN/Inf。")
 
-    base = rows[["frame_id", "sphere_id", "time_s", "sphere_released_flag", "input_GRID_NX", "input_GRID_NY", "input_SPOT_PLANE_SIZE"]].copy().reset_index(drop=True)
+    # Keep the state fields required to build the 01-compatible infrared-response contract.
+    base = rows[[
+        "frame_id",
+        "sphere_id",
+        "time_s",
+        "active_flag",
+        "sphere_released_flag",
+        "distance_to_detector",
+        "input_GRID_NX",
+        "input_GRID_NY",
+        "input_SPOT_PLANE_SIZE",
+    ]].copy().reset_index(drop=True)
     flat = y.reshape(-1, 4)
     for i, c in enumerate(stage_f.TARGET):
         base[f"pred_{c}"] = flat[:, i]
@@ -324,6 +340,20 @@ def run_surrogate_prediction(
         if mode in {"point-image", "both"}:
             result.update(predict_point_image(model_params, run_dir))
             emit_progress(state="point_image_completed", run_id=run_id)
+
+        # Build an 01-compatible response core under run_dir/output.  In mode=both
+        # this directory can be passed directly to 03 as the candidate run.
+        result.update(
+            forward_output_contract.build_forward_response_output(
+                run_dir, run_id=run_id, mode=mode, prediction_result=result
+            )
+        )
+        emit_progress(
+            state="formal_output_completed",
+            run_id=run_id,
+            formal_output_dir=result.get("formal_output_dir"),
+            similarity_ready=result.get("03_similarity_ready", False),
+        )
 
         result["status"] = "success"
         result["return_code"] = 0

@@ -5,7 +5,7 @@
   <StackPanel IsEnabled="{Binding CanEdit}">
    <TextBlock Text="当前功能由左侧“功能模块”导航确定。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8"/>
    <StackPanel Visibility="{Binding IsForward, Converter={StaticResource Visible}}">
-    <TextBlock Text="使用当前任务调用正向入口。轨迹由正向求解器生成；本页不执行轨迹后处理。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="使用当前任务调用正向入口。正向计算完成后会默认生成 trajectory_history.csv，可在“轨迹生成”模块中直接使用。" TextWrapping="Wrap" Margin="0,8"/>
     <CheckBox Content="仅准备输入（不执行求解）" IsChecked="{Binding PrepareOnly}" Margin="0,8"/>
    </StackPanel>
    <StackPanel Visibility="{Binding IsPrediction, Converter={StaticResource Visible}}">
@@ -13,8 +13,25 @@
     <ComboBox ItemsSource="{Binding PredictionModes}" SelectedItem="{Binding PredictionMode}"/>
     <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
    </StackPanel>
+   <StackPanel Visibility="{Binding IsTrajectory, Converter={StaticResource Visible}}">
+    <TextBlock Text="本模块只调用01目录中的轨迹专用程序，不启动正向计算。请选择外部轨迹文件，或使用最近一次01正向计算默认生成的轨迹。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="轨迹输入模式" FontWeight="SemiBold"/>
+    <ComboBox ItemsSource="{Binding TrajectoryInputModes}" SelectedItem="{Binding TrajectoryInputMode}" Margin="0,4,0,8"/>
+    <StackPanel Visibility="{Binding UseExternalTrajectory, Converter={StaticResource Visible}}">
+     <TextBlock Text="外部 trajectory_history.csv"/>
+     <DockPanel Margin="0,4,0,8">
+      <Button DockPanel.Dock="Right" Content="浏览…" Command="{Binding BrowseTrajectoryCommand}" Margin="8,0,0,0" Padding="12,4"/>
+      <TextBox Text="{Binding ExternalTrajectoryPath, UpdateSourceTrigger=PropertyChanged}"/>
+     </DockPanel>
+    </StackPanel>
+    <StackPanel Visibility="{Binding UseForwardTrajectory, Converter={StaticResource Visible}}">
+     <TextBlock Text="最近一次01正向计算轨迹"/>
+     <TextBox Text="{Binding DefaultTrajectoryPath, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,4,0,8"/>
+    </StackPanel>
+    <CheckBox Content="轨迹统计包含释放前阶段" IsChecked="{Binding IncludePrereleaseTrajectory}" Margin="0,4,0,8"/>
+   </StackPanel>
    <StackPanel Visibility="{Binding IsSimilarity, Converter={StaticResource Visible}}">
-    <TextBlock Text="当前评价器要求两份正式正向 output 目录（温度和红外历史文件）。原始 02 预测目录不符合该合同；不会自动转换或补算。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="当前评价器要求两份标准响应 output 目录（包含温度和红外历史文件）。参考结果通常选择 01 正向 output；候选结果可选择 01 正向 output，或 02 在 both 模式下生成的 run_xxx\output。" TextWrapping="Wrap" Margin="0,8"/>
     <TextBlock Text="Reference result 目录"/><TextBox Text="{Binding ReferenceDirectory, UpdateSourceTrigger=PropertyChanged}"/>
     <TextBlock Text="Candidate result 目录"/><TextBox Text="{Binding CandidateDirectory, UpdateSourceTrigger=PropertyChanged}"/>
     <TextBlock Text="Evaluation config 路径（留空使用后端默认）"/><TextBox Text="{Binding EvaluationConfig, UpdateSourceTrigger=PropertyChanged}"/>

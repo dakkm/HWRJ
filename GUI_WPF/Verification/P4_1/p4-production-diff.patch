@@ -1,0 +1,1007 @@
+﻿diff --git "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\App.config" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\App.config"
+index ca9f6a3..de7c9a3 100644
+--- "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\App.config"
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\App.config"
+@@ -1,5 +1,7 @@
+ ﻿<?xml version="1.0" encoding="utf-8" ?>
+ <configuration>
++    <!-- Empty settings use package discovery, PATH Python, and LocalApplicationData runtime storage. -->
++    <appSettings><add key="BackendRoot" value=""/><add key="PythonExecutable" value=""/><add key="RuntimeRoot" value=""/></appSettings>
+     <startup>
+         <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.8" />
+     </startup>
+diff --git "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\MainWindow.xaml" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\MainWindow.xaml"
+index f3f9f95..941f0e5 100644
+--- "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\MainWindow.xaml"
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\MainWindow.xaml"
+@@ -1,4 +1,4 @@
+-﻿<Window x:Class="PreProcess.Wpf.MainWindow"
++<Window x:Class="PreProcess.Wpf.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="clr-namespace:PreProcess.Wpf.ViewModels"
+@@ -12,21 +12,21 @@
+ <DataTemplate DataType="{x:Type vm:SceneMotionViewModel}"><views:SceneMotionView/></DataTemplate>
+ <DataTemplate DataType="{x:Type vm:EnvironmentObservationViewModel}"><views:EnvironmentObservationView/></DataTemplate>
+ <DataTemplate DataType="{x:Type vm:CalculationOutputViewModel}"><views:CalculationOutputView/></DataTemplate>
+-</Window.Resources>
++<DataTemplate DataType="{x:Type vm:ForwardRunViewModel}"><views:ForwardRunView/></DataTemplate></Window.Resources>
+  <DockPanel>
+   <Menu DockPanel.Dock="Top">
+-   <MenuItem Header="文件"><MenuItem Header="新建任务" Command="{Binding Editor.NewCommand}"/><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}"/></MenuItem>
++   <MenuItem Header="文件"><MenuItem Header="新建任务" Command="{Binding Editor.NewCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}"/></MenuItem>
+    <MenuItem Header="任务"><MenuItem Header="任务设置" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[0].Children[0]}"/></MenuItem>
+-   <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding PlaceholderCommand}" CommandParameter="运行"/><MenuItem Header="停止" Command="{Binding PlaceholderCommand}" CommandParameter="停止"/></MenuItem>
++   <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding Execution.RunCommand}"/><MenuItem Header="停止" Command="{Binding Execution.StopCommand}"/></MenuItem>
+    <MenuItem Header="查看"><MenuItem Header="输出结果" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[2]}"/><MenuItem Header="日志与告警" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[3]}"/></MenuItem>
+    <MenuItem Header="帮助"><MenuItem Header="关于工作台" Command="{Binding PlaceholderCommand}" CommandParameter="帮助"/></MenuItem>
+   </Menu>
+   <ToolBarTray DockPanel.Dock="Top" IsLocked="True"><ToolBar>
+-   <Button Content="新建任务" Command="{Binding Editor.NewCommand}" Padding="10,4"/>
+-   <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" Padding="10,4"/>
++   <Button Content="新建任务" Command="{Binding Editor.NewCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
++   <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
+    <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" Padding="10,4"/>
+-   <Separator/><Button Content="运行" Command="{Binding PlaceholderCommand}" CommandParameter="运行" Padding="16,4"/>
+-   <Button Content="停止" Command="{Binding PlaceholderCommand}" CommandParameter="停止" Padding="16,4"/>
++   <Separator/><Button Content="运行" Command="{Binding Execution.RunCommand}" Padding="16,4"/>
++   <Button Content="停止" Command="{Binding Execution.StopCommand}" Padding="16,4"/>
+   </ToolBar></ToolBarTray>
+   <StatusBar DockPanel.Dock="Bottom"><TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis"/></StatusBar>
+   <Grid Margin="8">
+@@ -46,9 +46,9 @@
+     </DockPanel></Border>
+     <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整编辑区与日志区高度"/>
+     <Border Grid.Row="2" Style="{StaticResource Panel}"><TabControl x:Name="LogTabs" BorderThickness="0" AutomationProperties.Name="日志告警进度">
+-     <TabItem Header="日志"><ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="日志显示区域已就绪。当前没有运行日志。" Style="{StaticResource EmptyText}"/></ScrollViewer></TabItem>
+-     <TabItem Header="告警"><TextBlock Text="暂无告警。本阶段未连接任务运行。" Style="{StaticResource EmptyText}"/></TabItem>
+-     <TabItem Header="进度"><StackPanel Margin="18"><TextBlock Text="等待任务 · 进度占位" Margin="0,0,0,12"/><ProgressBar Minimum="0" Maximum="100" Value="0" Height="18" AutomationProperties.Name="任务进度"/></StackPanel></TabItem>
++     <TabItem Header="日志"><ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding Execution.LogText}" Style="{StaticResource EmptyText}"/></ScrollViewer></TabItem>
++     <TabItem Header="告警"><ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding Execution.WarningText}" Style="{StaticResource EmptyText}"/></ScrollViewer></TabItem>
++     <TabItem Header="进度"><StackPanel Margin="18"><TextBlock Text="{Binding Execution.Status}" Margin="0,0,0,12"/><ProgressBar Minimum="0" Maximum="100" Value="0" IsIndeterminate="{Binding Execution.IsBusy}" Height="18" AutomationProperties.Name="任务进度"/><TextBlock Text="{Binding Execution.ResultLocation}" TextWrapping="Wrap" Margin="0,8"/></StackPanel></TabItem>
+     </TabControl></Border>
+    </Grid>
+    <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整结果区宽度"/>
+diff --git "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\MainWindow.xaml.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\MainWindow.xaml.cs"
+index 94ae9f6..9b7b5d1 100644
+--- "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\MainWindow.xaml.cs"
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\MainWindow.xaml.cs"
+@@ -1,13 +1,45 @@
+-﻿using System.Windows;
++﻿using System;
++using System.ComponentModel;
++using System.Windows;
++using System.Windows.Media;
+ using PreProcess.Wpf.ViewModels;
+ 
+ namespace PreProcess.Wpf
+ {
+     public partial class MainWindow : Window
+     {
+-        public MainWindow() { InitializeComponent(); }
+-
+-        // WPF TreeView.SelectedItem is read-only: bridge the view event to a VM command.
++        private bool closingAfterStop;
++        public MainWindow()
++        {
++            InitializeComponent();
++            var vm = (MainWindowViewModel)DataContext;
++            vm.Execution.HasInputErrors = () => HasErrors(EditorContent);
++            vm.Execution.PropertyChanged += (s, e) => UpdateEditing();
++            vm.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(MainWindowViewModel.CurrentContent)) UpdateEditing(); };
++            Closing += OnClosing;
++            Closed += (s, e) => vm.Execution.Dispose();
++        }
++        private void UpdateEditing()
++        {
++            var vm = (MainWindowViewModel)DataContext;
++            EditorContent.IsEnabled = !vm.Execution.IsBusy || ReferenceEquals(vm.CurrentContent, vm.Execution);
++        }
++        private async void OnClosing(object sender, CancelEventArgs e)
++        {
++            var execution = ((MainWindowViewModel)DataContext).Execution;
++            if (closingAfterStop || !execution.IsBusy) return;
++            e.Cancel = true;
++            await execution.StopAndWaitAsync();
++            closingAfterStop = true;
++            Close();
++        }
++        private static bool HasErrors(DependencyObject node)
++        {
++            if (System.Windows.Controls.Validation.GetHasError(node)) return true;
++            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
++                if (HasErrors(VisualTreeHelper.GetChild(node, i))) return true;
++            return false;
++        }
+         private void OnNavigationSelectionChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+         {
+             var viewModel = DataContext as MainWindowViewModel;
+@@ -15,4 +47,4 @@ namespace PreProcess.Wpf
+                 viewModel.NavigateCommand.Execute(e.NewValue);
+         }
+     }
+-}
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\PreProcess.Wpf.csproj" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\PreProcess.Wpf.csproj"
+index 5125ad8..6937ee4 100644
+--- "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\PreProcess.Wpf.csproj"
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\PreProcess.Wpf.csproj"
+@@ -35,7 +35,7 @@
+     <WarningLevel>4</WarningLevel>
+   </PropertyGroup>
+   <ItemGroup>
+-    <Reference Include="System" /><Reference Include="System.Web.Extensions" />
++    <Reference Include="System" /><Reference Include="System.Configuration" /><Reference Include="System.Web.Extensions" />
+     <Reference Include="System.Data" />
+     <Reference Include="System.Xml" />
+     <Reference Include="Microsoft.CSharp" />
+@@ -138,5 +138,6 @@
+ <Page Include="Views\CalculationOutputView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+ <Compile Include="Views\CalculationOutputView.xaml.cs"><DependentUpon>CalculationOutputView.xaml</DependentUpon></Compile>
+ </ItemGroup>
++<ItemGroup><Compile Include="Services\Process\GuiProgressParser.cs" /><Compile Include="Services\Process\ProcessLogEvent.cs" /><Compile Include="Services\Process\ProcessManager.cs" /><Compile Include="Services\Process\ProcessProgressEvent.cs" /><Compile Include="Services\Process\ProcessRunRequest.cs" /><Compile Include="Services\Process\ProcessRunResult.cs" /><Compile Include="Services\Process\WindowsJobProcess.cs" /><Compile Include="Services\Execution\BackendPathResolver.cs" /><Compile Include="Services\Execution\ForwardSimulationService.cs" /><Compile Include="ViewModels\ForwardRunViewModel.cs" /><Page Include="Views\ForwardRunView.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page><Compile Include="Views\ForwardRunView.xaml.cs"><DependentUpon>ForwardRunView.xaml</DependentUpon></Compile></ItemGroup>
+   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+ </Project>
+diff --git "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\Services\\README.md" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\README.md"
+index ac5c12d..9b896b1 100644
+--- "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\Services\\README.md"
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\README.md"
+@@ -1,12 +1,17 @@
+ ﻿# Services
+ 
+-P3 请求生成入口为 `RequestGenerator.Generate(TaskModel)` 与 `Save(TaskModel, path, overwrite=false)`。
+-完整任务生成后端六分区 JSON；`ValidateJson` 使用原样嵌入的后端自定义 schema 描述及实际入口规则验证。
+-文件保存使用 UTF-8 无 BOM，同目录临时文件及原子替换；默认拒绝覆盖。
+-
+-`Mappers/` 和旧 DTO 保留以兼容已有调用与测试，不作为正式 JSON 序列化合同。
+-仅复用 `ForwardSimulationMapper.MapVector` 的三分量拷贝；原 Forward DTO 字段不全，不能序列化成正式请求。
+-旧 `CapabilityValidator` 也不是完整合同或预测适用性校验，生成入口不依赖它。
+-`PredictionMapper` 是旧内存结构；没有新建预测参数页面或独立三参数文件格式。
+-`SceneBuildMapper` 保留相似度阈值的业务含义；结果引用 Mapper 保留，不在本阶段生成或读取结果。
+-不继续扩展 Mapper 框架。本阶段不启动程序，不解析结果。
++当前正式链：`TaskModel → RequestGenerator → ForwardSimulationService → ProcessManager → 01统一入口`。
++
++- `RequestGenerator` 保持P3完整六分区合同与文件保存职责；未修改TaskModel/Mapper/原测试。
++- `Process/ProcessManager` 通用异步启动、stdout/stderr、GUI_PROGRESS、退出码、取消和超时；不包含01业务字段。
++- `Process/WindowsJobProcess` 使用Windows Job管理子进程，挂起创建后先分配Job再恢复；启动失败不会留下挂起进程。
++- `Execution/ForwardSimulationService` 负责环境预检、请求文件、正式01 CLI及运行定位信息；只读取result.json执行信封，不解析CSV或图像。
++- `Execution/BackendPathResolver` 读取应用配置和后端config.json中的standard_entries；不硬编码开发机路径。
++
++应用配置 `BackendRoot`、`PythonExecutable`、`RuntimeRoot` 可留空。默认向上查找coreprogram/config.json、从PATH发现真实python.exe并执行版本/pandas预检；运行文件默认写入LocalApplicationData/PreProcess/Runtime。相对配置路径以应用目录为基准。
++
++运行结构为 `<RuntimeRoot>/requests/<submission-guid>/request.json + stdout.log + stderr.log + run-location.json`，后端通过正式 `--run-root <RuntimeRoot>/runs` 自己创建 `run_时间_uuid/output`。submission-guid是请求提交标识，后端run_id才是运行编号。coreprogram不得作为RuntimeRoot。
++
++Python使用 `-B -u` 与UTF-8/禁写字节码环境变量；正式入口仍是后端config定义的forward_simulation_runner.py，不直接调用求解器。prepare-only只完成输入准备，不代表求解成功。
++
++旧Mappers和DTO全部保留兼容，不作为正式JSON合同；预测/相似度/场景搜索尚未正式调用。结果曲线、图像、历史管理均留待后续。
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\BackendPathResolver.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\BackendPathResolver.cs"
+new file mode 100644
+index 0000000..4de3a0e
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\BackendPathResolver.cs"
+@@ -0,0 +1,69 @@
++using System;
++using System.Collections.Generic;
++using System.Configuration;
++using System.IO;
++using System.Web.Script.Serialization;
++
++namespace PreProcess.Wpf.Services.Execution
++{
++    public sealed class BackendPaths
++    {
++        public string PackageRoot { get; set; }
++        public string Entry { get; set; }
++        public string Python { get; set; }
++        public string RuntimeRoot { get; set; }
++    }
++    public sealed class BackendPathResolver
++    {
++        public BackendPaths Resolve()
++        {
++            string app = AppDomain.CurrentDomain.BaseDirectory;
++            string package = ConfigurationManager.AppSettings["BackendRoot"];
++            if (!String.IsNullOrWhiteSpace(package)) package = Absolute(app, package);
++            else
++            {
++                for (var directory = new DirectoryInfo(app); directory != null; directory = directory.Parent)
++                {
++                    string candidate = Path.Combine(directory.FullName, "coreprogram");
++                    if (File.Exists(Path.Combine(candidate, "config.json"))) { package = candidate; break; }
++                }
++            }
++            if (String.IsNullOrWhiteSpace(package) || !File.Exists(Path.Combine(package, "config.json")))
++                throw new FileNotFoundException("未找到后端程序包，请配置 BackendRoot。");
++            var config = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(package, "config.json")));
++            var entries = (Dictionary<string, object>)config["standard_entries"];
++            string entry = Absolute(package, (string)entries["01_forward"]);
++            if (!File.Exists(entry)) throw new FileNotFoundException("正向计算入口文件不存在。", entry);
++            string python = ConfigurationManager.AppSettings["PythonExecutable"];
++            python = FindExecutable(String.IsNullOrWhiteSpace(python) ? "python.exe" : python, app);
++            string runtime = ConfigurationManager.AppSettings["RuntimeRoot"];
++            if (String.IsNullOrWhiteSpace(runtime)) runtime = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PreProcess", "Runtime");
++            else runtime = Absolute(app, runtime);
++            // Respect the backend's official --run-root option; never use a protected package as writable storage.
++            if (IsWithin(runtime, package)) throw new ArgumentException("运行目录不能位于冻结的后端程序包内。");
++            return new BackendPaths { PackageRoot = package, Entry = entry, Python = python, RuntimeRoot = runtime };
++        }
++        public static string FindExecutable(string name, string baseDirectory)
++        {
++            if (Path.IsPathRooted(name) || name.IndexOfAny(new[] { '\\', '/' }) >= 0)
++            {
++                string path = Absolute(baseDirectory, name);
++                if (File.Exists(path)) return path;
++            }
++            else foreach (string directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
++            {
++                if (String.IsNullOrWhiteSpace(directory)) continue;
++                string path = Path.Combine(directory.Trim('"'), name);
++                if (File.Exists(path) && path.IndexOf("WindowsApps", StringComparison.OrdinalIgnoreCase) < 0) return Path.GetFullPath(path);
++            }
++            throw new FileNotFoundException("未找到可用Python环境，请配置 PythonExecutable。", name);
++        }
++        public static bool IsWithin(string path, string directory)
++        {
++            string root = Path.GetFullPath(directory).TrimEnd('\\', '/');
++            string full = Path.GetFullPath(path).TrimEnd('\\', '/');
++            return String.Equals(root, full, StringComparison.OrdinalIgnoreCase) || full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
++        }
++        private static string Absolute(string root, string path) { return Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(root, path)); }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs"
+new file mode 100644
+index 0000000..f987340
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Execution\\ForwardSimulationService.cs"
+@@ -0,0 +1,178 @@
++using System;
++using System.Collections.Generic;
++using System.IO;
++using System.Text;
++using System.Threading;
++using System.Threading.Tasks;
++using System.Web.Script.Serialization;
++using PreProcess.Wpf.Models;
++using PreProcess.Wpf.Services.Process;
++
++namespace PreProcess.Wpf.Services.Execution
++{
++    public sealed class ForwardRunRecord
++    {
++        public string RunId { get; set; }
++        public string RequestPath { get; set; }
++        public string BackendRequestPath { get; set; }
++        public string RunDirectory { get; set; }
++        public string ResultDirectory { get; set; }
++        public DateTimeOffset StartedAt { get; set; }
++        public DateTimeOffset EndedAt { get; set; }
++        public ProcessRunState State { get; set; }
++        public int? ExitCode { get; set; }
++        public bool PrepareOnly { get; set; }
++        public string Message { get; set; }
++        public string Diagnostic { get; set; }
++    }
++
++    public sealed class ForwardSimulationService
++    {
++        private readonly ProcessManager manager = new ProcessManager();
++        private int active;
++        private readonly object gate = new object();
++        private CancellationTokenSource stop;
++        public bool IsRunning => Volatile.Read(ref active) != 0;
++        public event Action<ProcessLogEvent> Log;
++        public event Action<ProcessProgressEvent> Progress;
++        public event Action<ProcessRunState> StateChanged;
++        public void Stop() { lock (gate) stop?.Cancel(); manager.Stop(); }
++
++        public async Task<ForwardRunRecord> RunAsync(TaskModel task, bool prepareOnly = false, BackendPaths paths = null,
++            int timeoutSeconds = 1800, CancellationToken cancellationToken = default(CancellationToken))
++        {
++            if (Interlocked.CompareExchange(ref active, 1, 0) != 0) throw new InvalidOperationException("正向计算正在运行，请等待完成或停止。");
++            var record = new ForwardRunRecord { StartedAt = DateTimeOffset.Now, State = ProcessRunState.Preparing, PrepareOnly = prepareOnly };
++            StreamWriter stdout = null, stderr = null;
++            string submission = null, runRoot = null, ioError = null;
++            object logGate = new object();
++            bool launchingBackend = false;
++            Action<ProcessLogEvent> onLog = item =>
++            {
++                lock (logGate)
++                {
++                    try { (item.IsError ? stderr : stdout)?.WriteLine(item.Text); }
++                    catch (Exception ex) { ioError = ex.ToString(); manager.Stop(); }
++                }
++                Log?.Invoke(item);
++            };
++            Action<ProcessProgressEvent> onProgress = item =>
++            {
++                if (item.Module != "01") return;
++                if (!String.IsNullOrEmpty(item.RunDirectory) && runRoot != null && BackendPathResolver.IsWithin(item.RunDirectory, runRoot))
++                {
++                    record.RunDirectory = item.RunDirectory; record.RunId = item.RunId;
++                    string outputDirectory = Path.Combine(item.RunDirectory, "output");
++                    if (Directory.Exists(outputDirectory)) record.ResultDirectory = outputDirectory;
++                }
++                Progress?.Invoke(item);
++            };
++            Action<ProcessRunState> onState = state =>
++            {
++                if (launchingBackend && (state == ProcessRunState.Running || state == ProcessRunState.Stopping)) StateChanged?.Invoke(state);
++            };
++            using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
++            {
++                lock (gate) stop = cancellation;
++                manager.Log += onLog; manager.Progress += onProgress; manager.StateChanged += onState;
++                try
++                {
++                    StateChanged?.Invoke(ProcessRunState.Preparing);
++                    // The UI locks editing while this snapshot is generated; no task-model restructuring.
++                    await Task.Run(() =>
++                    {
++                        cancellation.Token.ThrowIfCancellationRequested();
++                        var generator = new RequestGenerator(); generator.Generate(task);
++                        paths = paths ?? new BackendPathResolver().Resolve();
++                        if (!File.Exists(paths.Python)) throw new FileNotFoundException("未找到可用Python环境。", paths.Python);
++                        if (!File.Exists(paths.Entry)) throw new FileNotFoundException("正向计算入口文件不存在。", paths.Entry);
++                        if (BackendPathResolver.IsWithin(paths.RuntimeRoot, paths.PackageRoot)) throw new ArgumentException("运行文件不能写入冻结后端目录。");
++                        if (timeoutSeconds <= 0) throw new ArgumentException("超时时间必须为正整数。");
++                        runRoot = Path.Combine(paths.RuntimeRoot, "runs");
++                        submission = Path.Combine(paths.RuntimeRoot, "requests", Guid.NewGuid().ToString("N"));
++                        Directory.CreateDirectory(submission);
++                        record.RequestPath = generator.Save(task, Path.Combine(submission, "request.json"));
++                        stdout = new StreamWriter(Path.Combine(submission, "stdout.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
++                        stderr = new StreamWriter(Path.Combine(submission, "stderr.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
++                    }, cancellation.Token).ConfigureAwait(false);
++                    var probe = MakeRequest(paths);
++                    probe.Arguments.Add("-c");
++                    probe.Arguments.Add("import sys,pandas; assert sys.version_info >= (3,10), 'Python 3.10+ required'; print('Python environment ready: '+sys.version.split()[0])");
++                    probe.Timeout = TimeSpan.FromSeconds(20);
++                    var environment = await manager.RunAsync(probe, cancellation.Token).ConfigureAwait(false);
++                    cancellation.Token.ThrowIfCancellationRequested();
++                    if (environment.State != ProcessRunState.Completed) throw new InvalidOperationException("未找到可用Python环境，或缺少 pandas 依赖。请检查告警日志。 " + environment.Error);
++                    var request = MakeRequest(paths);
++                    request.Arguments.Add(paths.Entry);
++                    request.Arguments.Add("--params-json"); request.Arguments.Add(record.RequestPath);
++                    request.Arguments.Add("--run-root"); request.Arguments.Add(runRoot);
++                    request.Arguments.Add("--timeout-seconds"); request.Arguments.Add(timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
++                    if (prepareOnly) request.Arguments.Add("--prepare-only");
++                    request.Timeout = TimeSpan.FromSeconds(timeoutSeconds + 120.0); // Also bounds preparation / hung entry.
++                    launchingBackend = true;
++                    onLog(new ProcessLogEvent { Text = "Executable: " + request.Executable + "\nArguments: " + String.Join(" ", System.Linq.Enumerable.Select(request.Arguments, WindowsJobProcess.Quote)) + "\nWorkingDirectory: " + request.WorkingDirectory });
++                    var result = await manager.RunAsync(request, cancellation.Token).ConfigureAwait(false);
++                    record.ExitCode = result.ExitCode; record.State = result.State;
++                    if (ioError != null) throw new IOException("运行日志保存失败：" + ioError);
++                    if (record.State == ProcessRunState.Completed)
++                    {
++                        if (String.IsNullOrEmpty(record.RunDirectory) || !Directory.Exists(record.RunDirectory))
++                            throw new DirectoryNotFoundException("程序已退出，但未获得有效运行目录。");
++                        // Only the execution envelope is read; no result CSV / image data is parsed.
++                        string file = Path.Combine(record.RunDirectory, "result.json");
++                        var envelope = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.Deserialize<Dictionary<string, object>>(File.ReadAllText(file, Encoding.UTF8));
++                        string expected = prepareOnly ? "prepared" : "success";
++                        if ((string)envelope["status"] != expected || Convert.ToInt32(envelope["return_code"]) != 0)
++                            throw new InvalidDataException("后端返回的完成状态不符合本次运行模式。");
++                        if ((string)envelope["run_id"] != record.RunId) throw new InvalidDataException("运行编号不一致。");
++                        string outputDirectory = (string)envelope["output_dir"];
++                        if (!BackendPathResolver.IsWithin(outputDirectory, record.RunDirectory) || !Directory.Exists(outputDirectory))
++                            throw new DirectoryNotFoundException("结果目录不存在或不属于本次运行。");
++                        string backendRequest = (string)envelope["request_json"];
++                        if (!BackendPathResolver.IsWithin(backendRequest, record.RunDirectory) || !File.Exists(backendRequest))
++                            throw new FileNotFoundException("后端运行请求记录不存在或不属于本次运行。");
++                        record.ResultDirectory = outputDirectory;
++                        record.BackendRequestPath = backendRequest;
++                        record.Message = prepareOnly ? "输入准备完成（未执行求解）。" : "正向计算完成。";
++                    }
++                    else record.Message = record.State == ProcessRunState.Cancelled ? "正向计算已停止。" : "正向计算失败，请查看告警日志。";
++                    record.Diagnostic = result.Error;
++                }
++                catch (OperationCanceledException) { record.State = ProcessRunState.Cancelled; record.Message = "正向计算已停止。"; }
++                catch (Exception ex)
++                {
++                    record.State = ProcessRunState.Failed;
++                    record.Message = "无法完成正向计算：" + ex.Message;
++                    record.Diagnostic = ex.ToString();
++                    onLog(new ProcessLogEvent { IsError = true, Text = ex.ToString() });
++                }
++                finally
++                {
++                    record.EndedAt = DateTimeOffset.Now;
++                    manager.Log -= onLog; manager.Progress -= onProgress; manager.StateChanged -= onState;
++                    try
++                    {
++                        try { stdout?.Dispose(); } finally { stderr?.Dispose(); }
++                        if (submission != null) File.WriteAllText(Path.Combine(submission, "run-location.json"),
++                            new JavaScriptSerializer().Serialize(record), new UTF8Encoding(false));
++                    }
++                    catch (Exception ex)
++                    {
++                        record.State = ProcessRunState.Failed; record.Message = "运行记录保存失败，请检查运行目录权限。";
++                        record.Diagnostic = ex.ToString(); Log?.Invoke(new ProcessLogEvent { IsError = true, Text = ex.ToString() });
++                    }
++                    lock (gate) stop = null;
++                    Volatile.Write(ref active, 0);
++                    StateChanged?.Invoke(record.State);
++                }
++            }
++            return record;
++        }
++        private static ProcessRunRequest MakeRequest(BackendPaths paths)
++        {
++            return new ProcessRunRequest { Executable = paths.Python, WorkingDirectory = paths.PackageRoot,
++                Arguments = new List<string> { "-B", "-u" }, EnvironmentVariables = new Dictionary<string, string>
++                { { "PYTHONUTF8", "1" }, { "PYTHONIOENCODING", "utf-8" }, { "PYTHONDONTWRITEBYTECODE", "1" } } };
++        }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\GuiProgressParser.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\GuiProgressParser.cs"
+new file mode 100644
+index 0000000..2c31b49
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\GuiProgressParser.cs"
+@@ -0,0 +1,33 @@
++using System;
++using System.Collections.Generic;
++using System.Globalization;
++using System.Web.Script.Serialization;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    public static class GuiProgressParser
++    {
++        public static bool TryParse(string line, out ProcessProgressEvent progress)
++        {
++            progress = null;
++            if (line == null || !line.StartsWith("GUI_PROGRESS ", StringComparison.Ordinal)) return false;
++            try
++            {
++                var fields = new JavaScriptSerializer().DeserializeObject(line.Substring(13)) as Dictionary<string, object>;
++                if (fields == null || String.IsNullOrEmpty(Text(fields, "state"))) return false;
++                double timestamp;
++                object raw;
++                double? time = fields.TryGetValue("timestamp", out raw) && raw != null && !(raw is bool) &&
++                    Double.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out timestamp) &&
++                    !Double.IsNaN(timestamp) && !Double.IsInfinity(timestamp) ? (double?)timestamp : null;
++                progress = new ProcessProgressEvent { Module = Text(fields, "module"), State = Text(fields, "state"),
++                    RunId = Text(fields, "run_id"), RunDirectory = Text(fields, "run_dir"), Timestamp = time, Fields = fields };
++                return true;
++            }
++            catch (ArgumentException) { return false; }
++            catch (InvalidOperationException) { return false; }
++        }
++        private static string Text(Dictionary<string, object> fields, string key)
++        { object value; return fields.TryGetValue(key, out value) ? value as string : null; }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessLogEvent.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessLogEvent.cs"
+new file mode 100644
+index 0000000..44a44be
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessLogEvent.cs"
+@@ -0,0 +1,11 @@
++using System;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    public sealed class ProcessLogEvent
++    {
++        public DateTimeOffset Timestamp { get; } = DateTimeOffset.Now;
++        public string Text { get; set; }
++        public bool IsError { get; set; }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessManager.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessManager.cs"
+new file mode 100644
+index 0000000..98cd4bf
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessManager.cs"
+@@ -0,0 +1,110 @@
++using System;
++using System.IO;
++using System.Threading;
++using System.Threading.Tasks;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    public sealed class ProcessManager
++    {
++        private int active;
++        private readonly object gate = new object();
++        private CancellationTokenSource stop;
++        public bool IsRunning => Volatile.Read(ref active) != 0;
++        public event Action<ProcessLogEvent> Log;
++        public event Action<ProcessProgressEvent> Progress;
++        public event Action<ProcessRunState> StateChanged;
++
++        public void Stop() { lock (gate) stop?.Cancel(); }
++
++        public async Task<ProcessRunResult> RunAsync(ProcessRunRequest request, CancellationToken cancellationToken = default(CancellationToken))
++        {
++            if (Interlocked.CompareExchange(ref active, 1, 0) != 0) throw new InvalidOperationException("已有程序正在运行。");
++            var result = new ProcessRunResult { StartedAt = DateTimeOffset.Now, State = ProcessRunState.Preparing };
++            using (var localStop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
++            using (var timeout = new CancellationTokenSource())
++            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(localStop.Token, timeout.Token))
++            {
++                lock (gate) stop = localStop;
++                try
++                {
++                    Emit(StateChanged, ProcessRunState.Preparing);
++                    if (request == null || !File.Exists(request.Executable)) throw new FileNotFoundException("未找到可执行程序。", request?.Executable);
++                    if (!Directory.Exists(request.WorkingDirectory)) throw new DirectoryNotFoundException("程序工作目录不存在：" + request.WorkingDirectory);
++                    if (request.Timeout.HasValue) timeout.CancelAfter(request.Timeout.Value);
++                    await Task.Run(async () =>
++                    {
++                        linked.Token.ThrowIfCancellationRequested();
++                        using (var child = WindowsJobProcess.Start(request))
++                        {
++                            result.ProcessId = child.Id;
++                            Emit(StateChanged, ProcessRunState.Running);
++                            using (linked.Token.Register(() =>
++                            {
++                                Emit(StateChanged, ProcessRunState.Stopping);
++                                try { child.Terminate(); }
++                                catch (Exception ex) { Emit(Log, new ProcessLogEvent { IsError = true, Text = "终止进程树失败：" + ex }); }
++                            }))
++                            {
++                                var output = Task.Run(() => Read(child.Output, false, result, child));
++                                var error = Task.Run(() => Read(child.Error, true, result, child));
++                                result.ExitCode = await Task.Run(() => child.Wait()).ConfigureAwait(false);
++                                // Root exit does not imply descendants exited. Close the whole job before draining EOF.
++                                child.Terminate();
++                                await Task.WhenAll(output, error).ConfigureAwait(false);
++                            }
++                        }
++                    }).ConfigureAwait(false);
++                    result.TimedOut = timeout.IsCancellationRequested && !localStop.IsCancellationRequested;
++                    result.State = localStop.IsCancellationRequested ? ProcessRunState.Cancelled :
++                        result.TimedOut || result.ExitCode != 0 ? ProcessRunState.Failed : ProcessRunState.Completed;
++                    if (result.TimedOut) result.Error = "程序超过等待时限，已终止进程树。";
++                    else if (result.State == ProcessRunState.Failed) result.Error = "程序异常退出，退出码：" + result.ExitCode;
++                }
++                catch (OperationCanceledException)
++                {
++                    result.TimedOut = timeout.IsCancellationRequested && !localStop.IsCancellationRequested;
++                    result.State = result.TimedOut ? ProcessRunState.Failed : ProcessRunState.Cancelled;
++                }
++                catch (Exception ex)
++                {
++                    result.State = ProcessRunState.Failed; result.Error = ex.Message;
++                    Emit(Log, new ProcessLogEvent { IsError = true, Text = ex.ToString() });
++                }
++                finally
++                {
++                    result.EndedAt = DateTimeOffset.Now;
++                    lock (gate) stop = null;
++                    Volatile.Write(ref active, 0);
++                    Emit(StateChanged, result.State);
++                }
++            }
++            return result;
++        }
++        private void Read(StreamReader reader, bool error, ProcessRunResult result, WindowsJobProcess child)
++        {
++            try
++            {
++                string line;
++                while ((line = reader.ReadLine()) != null)
++                {
++                    Emit(Log, new ProcessLogEvent { Text = line, IsError = error });
++                    ProcessProgressEvent progress;
++                    if (!error && GuiProgressParser.TryParse(line, out progress))
++                    {
++                        if (progress.RunId != null) result.RunId = progress.RunId;
++                        if (progress.RunDirectory != null) result.ResultDirectory = progress.RunDirectory;
++                        Emit(Progress, progress); // Unknown states are data, never lifecycle commands.
++                    }
++                }
++            }
++            catch { child.Terminate(); throw; }
++        }
++        private static void Emit<T>(Action<T> handlers, T value)
++        {
++            if (handlers == null) return;
++            foreach (Action<T> handler in handlers.GetInvocationList())
++                try { handler(value); } catch (Exception ex) { System.Diagnostics.Trace.WriteLine(ex); }
++        }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessProgressEvent.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessProgressEvent.cs"
+new file mode 100644
+index 0000000..a0fc3af
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessProgressEvent.cs"
+@@ -0,0 +1,14 @@
++using System.Collections.Generic;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    public sealed class ProcessProgressEvent
++    {
++        public string Module { get; set; }
++        public string State { get; set; }
++        public double? Timestamp { get; set; }
++        public string RunId { get; set; }
++        public string RunDirectory { get; set; }
++        public IReadOnlyDictionary<string, object> Fields { get; set; }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessRunRequest.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessRunRequest.cs"
+new file mode 100644
+index 0000000..28d579d
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessRunRequest.cs"
+@@ -0,0 +1,16 @@
++using System;
++using System.Collections.Generic;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    public enum ProcessRunState { Idle, Preparing, Running, Stopping, Completed, Failed, Cancelled }
++
++    public sealed class ProcessRunRequest
++    {
++        public string Executable { get; set; }
++        public IList<string> Arguments { get; set; } = new List<string>();
++        public string WorkingDirectory { get; set; }
++        public IDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
++        public TimeSpan? Timeout { get; set; }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessRunResult.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessRunResult.cs"
+new file mode 100644
+index 0000000..3bf98b2
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\ProcessRunResult.cs"
+@@ -0,0 +1,17 @@
++using System;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    public sealed class ProcessRunResult
++    {
++        public ProcessRunState State { get; set; }
++        public int? ExitCode { get; set; }
++        public int? ProcessId { get; set; }
++        public DateTimeOffset StartedAt { get; set; }
++        public DateTimeOffset EndedAt { get; set; }
++        public string RunId { get; set; }
++        public string ResultDirectory { get; set; }
++        public string Error { get; set; }
++        public bool TimedOut { get; set; }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\WindowsJobProcess.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\WindowsJobProcess.cs"
+new file mode 100644
+index 0000000..a48e567
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Services\\Process\\WindowsJobProcess.cs"
+@@ -0,0 +1,139 @@
++using System;
++using System.Collections;
++using System.Collections.Generic;
++using System.ComponentModel;
++using System.IO;
++using System.Linq;
++using System.Runtime.InteropServices;
++using System.Text;
++using Microsoft.Win32.SafeHandles;
++
++namespace PreProcess.Wpf.Services.Process
++{
++    // Suspend BEFORE assigning the job, so even a fast child cannot escape containment.
++    internal sealed class WindowsJobProcess : IDisposable
++    {
++        private IntPtr job, process;
++        public int Id { get; private set; }
++        public StreamReader Output { get; private set; }
++        public StreamReader Error { get; private set; }
++        private static readonly object LaunchLock = new object();
++
++        public static WindowsJobProcess Start(ProcessRunRequest request)
++        {
++            lock (LaunchLock) return Launch(request);
++        }
++        private static WindowsJobProcess Launch(ProcessRunRequest request)
++        {
++            var instance = new WindowsJobProcess();
++            IntPtr outRead = IntPtr.Zero, outWrite = IntPtr.Zero, errRead = IntPtr.Zero, errWrite = IntPtr.Zero;
++            IntPtr inRead = IntPtr.Zero, inWrite = IntPtr.Zero, environment = IntPtr.Zero;
++            var info = new ProcessInformation();
++            try
++            {
++                instance.job = CreateJobObject(IntPtr.Zero, null);
++                Check(instance.job != IntPtr.Zero);
++                var limits = new ExtendedLimits();
++                limits.Basic.LimitFlags = 0x2000; // KILL_ON_JOB_CLOSE, no breakaway flags.
++                Check(SetInformationJobObject(instance.job, 9, ref limits, (uint)Marshal.SizeOf(limits)));
++                Pipe(out outRead, out outWrite); Pipe(out errRead, out errWrite); Pipe(out inRead, out inWrite);
++                Check(SetHandleInformation(outRead, 1, 0)); Check(SetHandleInformation(errRead, 1, 0));
++                Check(SetHandleInformation(inWrite, 1, 0));
++                var startup = new StartupInfo { Size = Marshal.SizeOf(typeof(StartupInfo)), Flags = 0x100,
++                    Input = inRead, Output = outWrite, Error = errWrite };
++                var variables = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
++                foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables()) variables[(string)entry.Key] = (string)entry.Value;
++                foreach (var entry in request.EnvironmentVariables) variables[entry.Key] = entry.Value;
++                string block = String.Join("\0", variables.Select(x => x.Key + "=" + x.Value)) + "\0\0";
++                environment = Marshal.StringToHGlobalUni(block);
++                var command = new StringBuilder(Quote(request.Executable) + " " + String.Join(" ", request.Arguments.Select(Quote)));
++                Check(CreateProcess(request.Executable, command, IntPtr.Zero, IntPtr.Zero, true,
++                    0x08000000 | 0x4 | 0x400, environment, request.WorkingDirectory, ref startup, out info));
++                instance.process = info.Process;
++                instance.Id = (int)info.ProcessId;
++                Check(AssignProcessToJobObject(instance.job, instance.process));
++                instance.Output = Reader(ref outRead); instance.Error = Reader(ref errRead);
++                Check(ResumeThread(info.Thread) != UInt32.MaxValue);
++                return instance;
++            }
++            catch
++            {
++                // Assignment failure must fail closed; the root may still be suspended outside the job.
++                if (instance.process != IntPtr.Zero) { TerminateProcess(instance.process, 1); WaitForSingleObject(instance.process, 5000); }
++                instance.Dispose();
++                throw;
++            }
++            finally
++            {
++                Close(ref outRead); Close(ref outWrite); Close(ref errRead); Close(ref errWrite);
++                Close(ref inRead); Close(ref inWrite); Close(ref info.Thread);
++                if (environment != IntPtr.Zero) Marshal.FreeHGlobal(environment);
++            }
++        }
++        public int Wait()
++        {
++            Check(WaitForSingleObject(process, UInt32.MaxValue) == 0);
++            uint code; Check(GetExitCodeProcess(process, out code)); return unchecked((int)code);
++        }
++        public void Terminate() { if (job != IntPtr.Zero) Check(TerminateJobObject(job, 1)); }
++        public void Dispose()
++        {
++            Close(ref job); // Also kills descendants after abnormal GUI shutdown / normal root exit.
++            Output?.Dispose(); Error?.Dispose(); Close(ref process);
++        }
++        // Windows CRT command-line quoting: do not invoke cmd.exe or concatenate unquoted user paths.
++        public static string Quote(string value)
++        {
++            if (value == null || value.IndexOf('\0') >= 0) throw new ArgumentException("Invalid process argument.");
++            var text = new StringBuilder("\""); int slashes = 0;
++            foreach (char c in value)
++            {
++                if (c == '\\') { slashes++; continue; }
++                if (c == '"') text.Append('\\', slashes * 2 + 1).Append(c);
++                else text.Append('\\', slashes).Append(c);
++                slashes = 0;
++            }
++            return text.Append('\\', slashes * 2).Append('"').ToString();
++        }
++        private static StreamReader Reader(ref IntPtr handle)
++        {
++            var safe = new SafeFileHandle(handle, true); handle = IntPtr.Zero;
++            return new StreamReader(new FileStream(safe, FileAccess.Read, 4096, false), new UTF8Encoding(false), true);
++        }
++        private static void Pipe(out IntPtr read, out IntPtr write)
++        {
++            var attributes = new SecurityAttributes { Length = Marshal.SizeOf(typeof(SecurityAttributes)), Inherit = true };
++            Check(CreatePipe(out read, out write, ref attributes, 0));
++        }
++        private static void Check(bool success) { if (!success) throw new Win32Exception(Marshal.GetLastWin32Error()); }
++        private static void Close(ref IntPtr handle) { if (handle != IntPtr.Zero) { CloseHandle(handle); handle = IntPtr.Zero; } }
++        [StructLayout(LayoutKind.Sequential)] private struct SecurityAttributes { public int Length; public IntPtr Descriptor; [MarshalAs(UnmanagedType.Bool)] public bool Inherit; }
++        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] private struct StartupInfo
++        {
++            public int Size; public string Reserved, Desktop, Title;
++            public uint X, Y, XSize, YSize, XChars, YChars, Fill, Flags;
++            public short Show, ReservedSize; public IntPtr ReservedPointer, Input, Output, Error;
++        }
++        [StructLayout(LayoutKind.Sequential)] private struct ProcessInformation { public IntPtr Process, Thread; public uint ProcessId, ThreadId; }
++        [StructLayout(LayoutKind.Sequential)] private struct BasicLimits
++        {
++            public long ProcessTime, JobTime; public uint LimitFlags; public UIntPtr MinWorking, MaxWorking;
++            public uint ActiveLimit; public UIntPtr Affinity; public uint Priority, Scheduling;
++        }
++        [StructLayout(LayoutKind.Sequential)] private struct IoCounters { public ulong ReadOps, WriteOps, OtherOps, ReadBytes, WriteBytes, OtherBytes; }
++        [StructLayout(LayoutKind.Sequential)] private struct ExtendedLimits
++        { public BasicLimits Basic; public IoCounters Io; public UIntPtr ProcessMemory, JobMemory, PeakProcess, PeakJob; }
++        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern IntPtr CreateJobObject(IntPtr attributes, string name);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetInformationJobObject(IntPtr job, int type, ref ExtendedLimits info, uint size);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool TerminateJobObject(IntPtr job, uint code);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CreatePipe(out IntPtr read, out IntPtr write, ref SecurityAttributes attributes, uint size);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetHandleInformation(IntPtr handle, uint mask, uint flags);
++        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool CreateProcess(string app, StringBuilder command, IntPtr pa, IntPtr ta, bool inherit, uint flags, IntPtr environment, string directory, ref StartupInfo startup, out ProcessInformation info);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern uint ResumeThread(IntPtr thread);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool TerminateProcess(IntPtr process, uint code);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
++        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetExitCodeProcess(IntPtr process, out uint code);
++        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs"
+new file mode 100644
+index 0000000..bd089f9
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\ForwardRunViewModel.cs"
+@@ -0,0 +1,115 @@
++using System;
++using System.Collections.Concurrent;
++using System.Threading.Tasks;
++using System.Windows.Input;
++using System.Windows.Threading;
++using PreProcess.Wpf.Services.Execution;
++using PreProcess.Wpf.Services.Process;
++
++namespace PreProcess.Wpf.ViewModels
++{
++    public sealed class ForwardRunViewModel : ObservableObject, IDisposable
++    {
++        private readonly TaskEditorViewModel editor;
++        private readonly ForwardSimulationService service = new ForwardSimulationService();
++        private readonly Dispatcher dispatcher;
++        private readonly DispatcherTimer timer;
++        private readonly ConcurrentQueue<ProcessLogEvent> pending = new ConcurrentQueue<ProcessLogEvent>();
++        private Task<ForwardRunRecord> current;
++        private bool busy, stopping, prepareOnly;
++        private string status = "就绪", log = "", warnings = "", location = "尚无运行目录";
++        public bool IsBusy { get => busy; private set { busy = value; Notify(); Notify(nameof(CanEdit)); CommandManager.InvalidateRequerySuggested(); } }
++        public bool CanEdit => !IsBusy;
++        public bool PrepareOnly { get => prepareOnly; set { if (IsBusy) return; prepareOnly = value; Notify(); } }
++        public string Status { get => status; private set { status = value; Notify(); } }
++        public string LogText { get => log; private set { log = value; Notify(); } }
++        public string WarningText { get => warnings; private set { warnings = value; Notify(); } }
++        public string ResultLocation { get => location; private set { location = value; Notify(); } }
++        public ForwardRunRecord LastRun { get; private set; }
++        public ICommand RunCommand { get; }
++        public ICommand StopCommand { get; }
++        public Func<bool> HasInputErrors { get; set; }
++
++        public ForwardRunViewModel(TaskEditorViewModel editor)
++        {
++            this.editor = editor;
++            dispatcher = Dispatcher.CurrentDispatcher;
++            RunCommand = new RunCommandImpl(async () => await StartAsync(), () => !IsBusy);
++            StopCommand = new RunCommandImpl(Stop, () => IsBusy && !stopping);
++            service.Log += item => { pending.Enqueue(item); while (pending.Count > 2000) { ProcessLogEvent ignored; pending.TryDequeue(out ignored); } };
++            service.Progress += item => OnUi(() =>
++            {
++                if (stopping) return;
++                switch (item.State)
++                {
++                    case "input_ready": Status = "输入已准备"; break;
++                    case "running_forward": Status = "正向计算运行中"; break;
++                    case "prepared": Status = "输入准备完成（未求解）"; break;
++                    case "success": Status = "正在确认完成状态"; break;
++                    case "forward_failed": Status = "后端计算失败"; break;
++                    default: pending.Enqueue(new ProcessLogEvent { Text = "未知进度状态：" + item.State }); break;
++                }
++                if (!String.IsNullOrEmpty(item.RunDirectory)) ResultLocation = item.RunDirectory;
++            });
++            service.StateChanged += state => OnUi(() =>
++            {
++                if (state == ProcessRunState.Preparing) Status = "准备正向计算";
++                else if (state == ProcessRunState.Running && !stopping) Status = "正向计算运行中";
++                else if (state == ProcessRunState.Stopping) Status = "正在停止进程树";
++            });
++            timer = new DispatcherTimer(TimeSpan.FromMilliseconds(150), DispatcherPriority.Background, (s, e) => Flush(), dispatcher);
++        }
++        public async Task StartAsync(BackendPaths paths = null)
++        {
++            if (IsBusy) return;
++            if (HasInputErrors?.Invoke() == true) { Status = "请先修正标红的输入。"; return; }
++            IsBusy = true; stopping = false; Status = "准备正向计算"; ResultLocation = "正在准备本次运行";
++            LastRun = null; LogText = ""; WarningText = "";
++            try
++            {
++                current = service.RunAsync(editor.Task, PrepareOnly, paths);
++                LastRun = await current;
++                Status = LastRun.Message;
++                ResultLocation = LastRun.ResultDirectory ?? LastRun.RunDirectory ?? "本次未产生结果目录";
++                if (LastRun.State == ProcessRunState.Failed) pending.Enqueue(new ProcessLogEvent { IsError = true, Text = LastRun.Message });
++            }
++            catch (Exception ex)
++            { Status = "正向计算无法启动，请查看告警。"; pending.Enqueue(new ProcessLogEvent { IsError = true, Text = ex.ToString() }); }
++            finally { current = null; IsBusy = false; stopping = false; Flush(); CommandManager.InvalidateRequerySuggested(); }
++        }
++        public void Stop()
++        {
++            if (!IsBusy) return;
++            stopping = true; Status = "正在停止进程树"; CommandManager.InvalidateRequerySuggested(); service.Stop();
++        }
++        public async Task StopAndWaitAsync()
++        {
++            Stop(); var run = current;
++            if (run != null) try { await run; } catch (Exception ex) { System.Diagnostics.Trace.WriteLine(ex); }
++        }
++        private void OnUi(Action action)
++        { if (!dispatcher.HasShutdownStarted) dispatcher.BeginInvoke(action); }
++        private void Flush()
++        {
++            var output = new System.Text.StringBuilder(); var errors = new System.Text.StringBuilder(); ProcessLogEvent item;
++            for (int i = 0; i < 500 && pending.TryDequeue(out item); i++)
++            {
++                string text = item.Timestamp.ToString("HH:mm:ss") + " " + item.Text + Environment.NewLine;
++                output.Append(text); if (item.IsError) errors.Append(text);
++            }
++            if (output.Length > 0) LogText = Tail(LogText + output);
++            if (errors.Length > 0) WarningText = Tail(WarningText + errors);
++        }
++        private static string Tail(string text) { return text.Length <= 64000 ? text : "（界面仅保留最近日志，完整记录见运行目录 requests 下日志）\n" + text.Substring(text.Length - 63000); }
++        public void Dispose() { timer.Stop(); service.Stop(); }
++
++        private sealed class RunCommandImpl : ICommand
++        {
++            private readonly Action action; private readonly Func<bool> enabled;
++            public RunCommandImpl(Action action, Func<bool> enabled) { this.action = action; this.enabled = enabled; }
++            public bool CanExecute(object parameter) => enabled();
++            public void Execute(object parameter) { if (enabled()) action(); }
++            public event EventHandler CanExecuteChanged { add { CommandManager.RequerySuggested += value; } remove { CommandManager.RequerySuggested -= value; } }
++        }
++    }
++}
+diff --git "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs"
+index 1ed3bd8..5caab85 100644
+--- "a/D:\\Pre-process\\GUI_WPF\\Verification\\P4_1\\before\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs"
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\ViewModels\\MainWindowViewModel.cs"
+@@ -1,4 +1,4 @@
+-using System.Collections.ObjectModel;
++﻿using System.Collections.ObjectModel;
+ using System.Windows.Input;
+ 
+ namespace PreProcess.Wpf.ViewModels
+@@ -8,8 +8,9 @@ namespace PreProcess.Wpf.ViewModels
+         public ObservableCollection<NavigationItemViewModel> Navigation { get; }
+             = new ObservableCollection<NavigationItemViewModel>();
+         public TaskEditorViewModel Editor { get; } = new TaskEditorViewModel();
+-        private readonly System.Collections.Generic.Dictionary<NavigationItemViewModel, TaskPageViewModel> pages
+-            = new System.Collections.Generic.Dictionary<NavigationItemViewModel, TaskPageViewModel>();
++        private readonly System.Collections.Generic.Dictionary<NavigationItemViewModel, object> pages
++            = new System.Collections.Generic.Dictionary<NavigationItemViewModel, object>();
++        public ForwardRunViewModel Execution { get; }
+         public object CurrentContent => selectedPage != null && pages.ContainsKey(selectedPage)
+             ? (object)pages[selectedPage] : selectedPage;
+         private NavigationItemViewModel selectedPage;
+@@ -25,6 +26,8 @@ namespace PreProcess.Wpf.ViewModels
+ 
+         public MainWindowViewModel()
+         {
++            Execution = new ForwardRunViewModel(Editor);
++            Execution.PropertyChanged += (sender, args) => { if (args.PropertyName == nameof(ForwardRunViewModel.Status)) Status = Execution.Status; };
+             Editor.PropertyChanged += (sender, args) => { if (args.PropertyName == nameof(TaskEditorViewModel.Message)) Status = Editor.Message; };
+             var task = AddGroup("场景任务", "在这里组织场景任务的设置与数据。");
+             Add(task, "任务设置", "任务基本信息的编辑区域。");
+@@ -48,6 +51,7 @@ namespace PreProcess.Wpf.ViewModels
+             pages.Add(task.Children[2], new SceneMotionViewModel(Editor));
+             pages.Add(task.Children[3], new EnvironmentObservationViewModel(Editor));
+             pages.Add(task.Children[4], new CalculationOutputViewModel(Editor));
++            pages.Add(modules.Children[0], Execution);
+             SelectedPage = task.Children[0];
+             NavigateCommand = new RelayCommand(item => SelectedPage = item as NavigationItemViewModel);
+             PlaceholderCommand = new RelayCommand(action => Status = action + "：当前为工作台骨架，此操作尚未接入。");
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml"
+new file mode 100644
+index 0000000..92bdb62
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml"
+@@ -0,0 +1,12 @@
++<UserControl x:Class="PreProcess.Wpf.Views.ForwardRunView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
++ <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18">
++  <TextBlock Text="正向计算" FontSize="24" FontWeight="SemiBold"/>
++  <TextBlock Text="使用当前场景任务生成请求并调用正向计算程序。请在运行前检查任务设置、目标、场景和观测参数。" TextWrapping="Wrap" Margin="0,12"/>
++  <CheckBox Content="仅准备输入（不执行求解）" IsChecked="{Binding PrepareOnly}" IsEnabled="{Binding CanEdit}" Margin="0,8"/>
++  <StackPanel Orientation="Horizontal"><Button Content="运行正向计算" Command="{Binding RunCommand}" Padding="12,6" Margin="0,8,12,8"/><Button Content="停止" Command="{Binding StopCommand}" Padding="12,6"/></StackPanel>
++  <TextBlock Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12"/>
++  <TextBlock Text="本次运行位置" FontWeight="SemiBold"/>
++  <TextBox Text="{Binding ResultLocation, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,8"/>
++  <TextBlock Text="日志与告警在底部实时更新。进度表示当前阶段；输入准备完成不代表求解完成。结果绘制将在后续阶段接入。" TextWrapping="Wrap"/>
++ </StackPanel></ScrollViewer>
++</UserControl>
+diff --git "a/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml.cs" "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml.cs"
+new file mode 100644
+index 0000000..7b17474
+--- /dev/null
++++ "b/D:\\Pre-process\\GUI_WPF\\PreProcess.Wpf\\PreProcess.Wpf\\Views\\ForwardRunView.xaml.cs"
+@@ -0,0 +1,6 @@
++using System.Windows.Controls;
++namespace PreProcess.Wpf.Views
++{
++    public partial class ForwardRunView : UserControl
++    { public ForwardRunView() { InitializeComponent(); } }
++}

@@ -1,0 +1,34 @@
+﻿[
+    {
+        "Change":  "Modified",
+        "Path":  "PreProcess.Wpf.csproj"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Models\\README.md"
+    },
+    {
+        "Change":  "Added",
+        "Path":  "Models\\TargetGeometrySettings.cs"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Models\\TargetPhysics.cs"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Models\\TaskModel.cs"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Views\\TargetPhysicsEditor.xaml"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Views\\TargetSettingsView.xaml"
+    },
+    {
+        "Change":  "Modified",
+        "Path":  "Views\\TaskSettingsView.xaml"
+    }
+]

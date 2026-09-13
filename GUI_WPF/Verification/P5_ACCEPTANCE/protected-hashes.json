@@ -1,0 +1,12 @@
+﻿{
+    "Algorithm":  "SHA256(sorted UTF-8 lines: relative/path\u003cTAB\u003efileSHA256\u003cLF\u003e)",
+    "CoreCurrentCount":  119,
+    "CoreBaselineCount":  119,
+    "CoreDifferences":  0,
+    "CoreManifestSHA256":  "B41E01CD8B73124092C4E2B3C7D65F9B607DD231A3FC2A184E7445B40FC7C3F9",
+    "CoreBaselineManifestSHA256":  "B41E01CD8B73124092C4E2B3C7D65F9B607DD231A3FC2A184E7445B40FC7C3F9",
+    "LegacyBaselineCount":  1743,
+    "LegacyManifestSHA256":  "3D73CE952D0612593B7F0FD218ECC52CDAC9D7F1313602BB366D9D98B81CEAA2",
+    "LegacyState":  "not extracted or written in this workspace; manifest reconstructed from protected-before.csv captured from supplied package",
+    "ReleaseExeSHA256":  "2B8954CF81F1C92A266ABC68CD2CCCFD21046AF4CF1680C02C06CE20A2AE82D8"
+}

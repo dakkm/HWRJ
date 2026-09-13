@@ -1,0 +1,30 @@
+程序说明 v1.0.1-baseline 变更说明
+=================================
+
+问题：
+v1.0.0中03真实入口要求reference/candidate均为包含 temperature_history.csv 和
+infrared_response_history.csv 的正式响应output目录；02原生run目录只有代理模型自身输出，
+因此不能直接形成“01结果 + 02结果”的相似度评价链。
+
+修复：
+1. 02每次成功任务新增 run_xxx\output\；
+2. --mode both 时生成：
+   - temperature_history.csv
+   - infrared_response_history.csv
+   - output_contract.json
+   - run_metadata.json
+   - solver_status.txt
+3. 03可直接读取01 output和02 run_xxx\output进行成对评价；
+4. 03允许02明确不可用的 radiation_power_W / radiant_intensity_W_sr 为空，
+   对应分项标记invalid并退出综合相似度，不再因空值阻断整个评价。
+
+物理边界：
+- 02温度模型仍只预测1号目标，T_2~T_16不伪造；
+- pred_spot_intensity不改名为radiant_intensity_W_sr；
+- detector_received_power_W来自点图像模型的pred_spot_power；
+- detector_irradiance_W_m2按当前no-PSF/same-pixel合同由点功率/像元面积确定性恢复。
+
+定向验证：
+已用101时刻×16目标的合成合同数据完成：
+02-compatible output -> 03 similarity，流程成功；
+缺失源辐射分项valid_flag=0；温度、detector power/irradiance、屏幕位置分项正常参与。

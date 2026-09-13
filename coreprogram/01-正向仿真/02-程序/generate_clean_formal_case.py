@@ -11,6 +11,8 @@ def main():
     vals["TARGET_PHYSICS"]="\n".join(" ".join(row) for row in cfg["TARGET_PHYSICS"])
     vals["TARGET_SCENE"]="\n".join(" ".join(row) for row in cfg["TARGET_SCENE"])
     text=a.template.read_text(encoding="utf-8").format(**vals)
-    a.output.write_text(text,encoding="utf-8",newline="\n")
+    # Path.write_text(newline=...) is unavailable on the Win7 Python 3.8 runtime.
+    with a.output.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(text)
 
 if __name__=="__main__": main()

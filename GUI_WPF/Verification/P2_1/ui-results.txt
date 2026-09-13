@@ -1,0 +1,71 @@
+﻿Concrete view 0 PASS
+Shared editor 0 PASS
+Concrete view 1 PASS
+Shared editor 1 PASS
+Concrete view 2 PASS
+Shared editor 2 PASS
+Concrete view 3 PASS
+Shared editor 3 PASS
+Concrete view 4 PASS
+Shared editor 4 PASS
+Name UI -> Model PASS
+Duration UI -> Model PASS
+Count synchronizes target collection PASS
+Uniform radius binding PASS
+Derived mass PASS
+Target selector UI -> VM PASS
+Override isolated from uniform PASS
+Uniform inheritance and override PASS
+Disable override restores inheritance PASS
+Reenable retains independent values PASS
+Motion binding and shared target PASS
+Primary release locked PASS
+Primary remains active PASS
+Environment binding PASS
+Tracking checkbox binding PASS
+Five descriptive module regions PASS
+Name survives all page switches PASS
+Override and motion survive page switches PASS
+Invalid count rejected visibly PASS
+Count growth PASS
+Shrink repairs selected target PASS
+Open and save do not replace memory task PASS
+New resets shared task PASS
+New refreshes binding PASS
+Minimum layout 0 PASS
+Scrollable page 0 PASS
+Minimum layout 1 PASS
+Scrollable page 1 PASS
+Minimum layout 2 PASS
+Scrollable page 2 PASS
+Minimum layout 3 PASS
+Scrollable page 3 PASS
+Minimum layout 4 PASS
+Scrollable page 4 PASS
+Maximized editor PASS
+Default shell and 5 mm thickness PASS
+Geometry has one owner PASS
+Default shell analytical mass PASS
+Radius updates shell mass PASS
+Density scales shell mass PASS
+Millimetre conversion and mass update PASS
+Displayed mass refreshes PASS
+Reject thickness 0 PASS
+Reject thickness -1 PASS
+Reject thickness 300 PASS
+Reject thickness 301 PASS
+Reject thickness NaN PASS
+Reject thickness abc PASS
+Reject radius smaller than thickness PASS
+Override geometry deep copy PASS
+Copy dimensions atomically beyond default radius PASS
+Default similarity 90 percent PASS
+Accept similarity 50 PASS
+Accept similarity 100 PASS
+Accept similarity 92.5 PASS
+Reject similarity 49 PASS
+Reject similarity 101 PASS
+Reject similarity NaN PASS
+Reject similarity abc PASS
+Shell and similarity survive navigation PASS
+New task restores P2.1 defaults PASS

@@ -2,6 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -17,6 +19,7 @@ namespace PreProcess.Wpf.ViewModels
         private readonly TaskEditorViewModel editor;
         private readonly ForwardSimulationService service = new ForwardSimulationService();
         private readonly PredictionService prediction = new PredictionService();
+        private readonly TrajectoryExecutionService trajectory = new TrajectoryExecutionService();
         private readonly SimilarityEvaluationService similarity = new SimilarityEvaluationService();
         private readonly SceneBuildService scene = new SceneBuildService();
         private readonly Dispatcher dispatcher;
@@ -26,20 +29,47 @@ namespace PreProcess.Wpf.ViewModels
         private Task<RunRecord> current;
         private string selectedModule = "01";
         public string[] Modules => new[] { "01", "02", "轨迹", "03", "04" };
-        public string SelectedModule { get => selectedModule; set { if (IsBusy || Array.IndexOf(Modules, value) < 0) return; selectedModule = value; Notify(); Notify(nameof(IsForward)); Notify(nameof(IsPrediction)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle)); ShowSelectedModuleResult(); } }
-        public bool IsForward => SelectedModule == "01" || SelectedModule == "轨迹";
+        public string SelectedModule { get => selectedModule; set { if (IsBusy || Array.IndexOf(Modules, value) < 0) return; selectedModule = value; Notify(); Notify(nameof(IsForward)); Notify(nameof(IsPrediction)); Notify(nameof(IsTrajectory)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle)); Notify(nameof(DefaultTrajectoryPath)); ShowSelectedModuleResult(); } }
+        public bool IsForward => SelectedModule == "01";
         public bool IsPrediction => SelectedModule == "02";
+        public bool IsTrajectory => SelectedModule == "轨迹";
         public bool IsSimilarity => SelectedModule == "03";
         public bool IsScene => SelectedModule == "04";
-        public string ModuleTitle => IsPrediction ? "智能预测" : IsSimilarity ? "相似度评估" : IsScene ? "红外场景构建" : SelectedModule == "轨迹" ? "轨迹生成（调用正向计算）" : "正向计算";
+        public string ModuleTitle => IsPrediction ? "智能预测" : IsTrajectory ? "轨迹生成" : IsSimilarity ? "相似度评估" : IsScene ? "红外场景构建" : "正向计算";
         public string[] PredictionModes => new[] { "temperature", "point-image", "both" };
         public string PredictionMode { get; set; } = "temperature";
+        public string[] TrajectoryInputModes => new[] { "使用最近一次正向计算轨迹", "读取外部轨迹文件" };
+        private string trajectoryInputMode = "使用最近一次正向计算轨迹";
+        public string TrajectoryInputMode
+        {
+            get { return trajectoryInputMode; }
+            set
+            {
+                if (IsBusy || Array.IndexOf(TrajectoryInputModes, value) < 0 || trajectoryInputMode == value) return;
+                trajectoryInputMode = value;
+                Notify(); Notify(nameof(UseExternalTrajectory)); Notify(nameof(UseForwardTrajectory));
+            }
+        }
+        public bool UseExternalTrajectory => TrajectoryInputMode == "读取外部轨迹文件";
+        public bool UseForwardTrajectory => !UseExternalTrajectory;
+        public string ExternalTrajectoryPath { get; set; }
+        public bool IncludePrereleaseTrajectory { get; set; }
+        public string DefaultTrajectoryPath
+        {
+            get
+            {
+                RunRecord forward = RunHistory.FirstOrDefault(record => record.Module == "01" && record.State == ProcessRunState.Completed &&
+                    !String.IsNullOrWhiteSpace(record.ResultDirectory) && File.Exists(Path.Combine(record.ResultDirectory, "trajectory_history.csv")));
+                return forward == null ? "尚无可用的01正向计算轨迹" : Path.Combine(forward.ResultDirectory, "trajectory_history.csv");
+            }
+        }
         public string ReferenceDirectory { get; set; }
         public string CandidateDirectory { get; set; }
         public string EvaluationConfig { get; set; }
         private int requiredCandidates = 10;
         public int RequiredCandidates { get => requiredCandidates; set { if (value <= 0) throw new ArgumentException("候选数量必须为正整数。"); requiredCandidates = value; Notify(); } }
         public ICommand LoadReferenceCommand { get; }
+        public ICommand BrowseTrajectoryCommand { get; }
         public ICommand ImportResultCommand { get; }
         private bool busy, stopping, prepareOnly;
         private string status = "就绪", log = "", warnings = "", location = "尚无运行目录";
@@ -67,6 +97,7 @@ namespace PreProcess.Wpf.ViewModels
             RunCommand = new RunCommandImpl(async () => await StartAsync(), () => !IsBusy);
             StopCommand = new RunCommandImpl(Stop, () => IsBusy && !stopping);
             ImportResultCommand = new RunCommandImpl(async () => await ImportResultAsync(), () => !IsBusy);
+            BrowseTrajectoryCommand = new RunCommandImpl(BrowseTrajectory, () => !IsBusy);
             LoadReferenceCommand = new RunCommandImpl(() =>
             {
                 if (System.Windows.MessageBox.Show("载入后端固定参考任务会替换当前内存任务。是否继续？", "载入参考任务", System.Windows.MessageBoxButton.YesNo) != System.Windows.MessageBoxResult.Yes) return;
@@ -79,6 +110,12 @@ namespace PreProcess.Wpf.ViewModels
                 module.Progress += item => OnUi(() => { if (IsBusy && !stopping) Status = ModuleTitle + "：" + item.State; });
                 module.StateChanged += state => OnUi(() => { if (IsBusy && !stopping && (state == ProcessRunState.Preparing || state == ProcessRunState.Running)) Status = ModuleTitle + "：" + state; });
             }
+            trajectory.Log += item => { pending.Enqueue(item); while (pending.Count > 2000) { ProcessLogEvent ignored; pending.TryDequeue(out ignored); } };
+            trajectory.Progress += item => OnUi(() => { if (IsBusy && !stopping) Status = "轨迹生成：" + item.State; });
+            trajectory.StateChanged += state => OnUi(() =>
+            {
+                if (IsBusy && !stopping && (state == ProcessRunState.Preparing || state == ProcessRunState.Running)) Status = "轨迹生成：" + state;
+            });
             service.Log += item => { pending.Enqueue(item); while (pending.Count > 2000) { ProcessLogEvent ignored; pending.TryDequeue(out ignored); } };
             service.Progress += item => OnUi(() =>
             {
@@ -102,6 +139,22 @@ namespace PreProcess.Wpf.ViewModels
             });
             timer = new DispatcherTimer(TimeSpan.FromMilliseconds(150), DispatcherPriority.Background, (s, e) => Flush(), dispatcher);
         }
+        private void BrowseTrajectory()
+        {
+            using (var dialog = new System.Windows.Forms.OpenFileDialog
+            {
+                Title = "选择轨迹CSV文件",
+                Filter = "轨迹CSV文件 (*.csv)|*.csv|所有文件 (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false
+            })
+            {
+                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+                ExternalTrajectoryPath = dialog.FileName;
+                Notify(nameof(ExternalTrajectoryPath));
+                Status = "已选择外部轨迹文件。";
+            }
+        }
         private async Task ImportResultAsync()
         {
             using (var dialog = new System.Windows.Forms.FolderBrowserDialog
@@ -116,12 +169,12 @@ namespace PreProcess.Wpf.ViewModels
                 try
                 {
                     RunResult result = await Task.Run(() => new ResultDirectoryLoader().Load(dialog.SelectedPath));
-                    string key = result.ModuleCode;
-                    string title = result.ModuleType == ResultModuleType.Prediction ? "智能预测" : result.ModuleType == ResultModuleType.Similarity ? "相似度评估" : result.ModuleType == ResultModuleType.Scene ? "红外场景构建" : "正向计算";
+                    string key = result.ModuleType == ResultModuleType.Trajectory ? "轨迹" : result.ModuleCode;
+                    string title = result.ModuleType == ResultModuleType.Prediction ? "智能预测" : result.ModuleType == ResultModuleType.Trajectory ? "轨迹生成" : result.ModuleType == ResultModuleType.Similarity ? "相似度评估" : result.ModuleType == ResultModuleType.Scene ? "红外场景构建" : "正向计算";
                     ResultBrowserViewModel browser = ResultBrowserViewModel.FromResult(result, title, "已有计算结果已导入。");
                     resultBrowsers.Remember(key, browser);
                     selectedModule = key;
-                    Notify(nameof(SelectedModule)); Notify(nameof(IsForward)); Notify(nameof(IsPrediction)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle));
+                    Notify(nameof(SelectedModule)); Notify(nameof(IsForward)); Notify(nameof(IsPrediction)); Notify(nameof(IsTrajectory)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle));
                     ResultBrowser = browser;
                     ResultLocation = result.OutputDirectory;
                     Status = title + "结果导入完成。";
@@ -149,7 +202,7 @@ namespace PreProcess.Wpf.ViewModels
         public async Task StartAsync(BackendPaths paths = null)
         {
             if (IsBusy) return;
-            if (HasInputErrors?.Invoke() == true) { Status = "请先修正标红的输入。"; return; }
+            if (!IsTrajectory && HasInputErrors?.Invoke() == true) { Status = "请先修正标红的输入。"; return; }
             IsBusy = true; stopping = false; Status = "准备" + ModuleTitle; ResultLocation = "正在准备本次运行";
             ResultBrowser = ResultBrowserViewModel.Loading(ModuleTitle);
             LastRun = null; LogText = ""; WarningText = "";
@@ -208,10 +261,17 @@ namespace PreProcess.Wpf.ViewModels
             if (record == null || RunHistory.Contains(record)) return;
             RunHistory.Insert(0, record);
             while (RunHistory.Count > 100) RunHistory.RemoveAt(RunHistory.Count - 1);
+            Notify(nameof(DefaultTrajectoryPath));
         }
         private async Task<RunRecord> RunSelectedAsync(BackendPaths paths)
         {
             if (IsPrediction) return await prediction.RunAsync(editor.Task, PredictionMode, paths);
+            if (IsTrajectory)
+            {
+                string source = UseExternalTrajectory ? ExternalTrajectoryPath : DefaultTrajectoryPath;
+                if (!UseExternalTrajectory && !File.Exists(source)) source = null;
+                return await trajectory.RunAsync(source, TrajectoryInputMode, IncludePrereleaseTrajectory, paths);
+            }
             if (IsSimilarity) return await similarity.RunAsync(ReferenceDirectory, CandidateDirectory, EvaluationConfig, paths);
             if (IsScene) return await scene.RunAsync(editor.Task, RequiredCandidates, paths);
             return await service.RunAsync(editor.Task, PrepareOnly, paths);
@@ -219,7 +279,7 @@ namespace PreProcess.Wpf.ViewModels
         public void Stop()
         {
             if (!IsBusy) return;
-            stopping = true; Status = "正在停止进程树"; CommandManager.InvalidateRequerySuggested(); service.Stop(); prediction.Stop(); similarity.Stop(); scene.Stop();
+            stopping = true; Status = "正在停止进程树"; CommandManager.InvalidateRequerySuggested(); service.Stop(); prediction.Stop(); trajectory.Stop(); similarity.Stop(); scene.Stop();
         }
         public async Task StopAndWaitAsync()
         {
@@ -240,7 +300,7 @@ namespace PreProcess.Wpf.ViewModels
             if (errors.Length > 0) WarningText = Tail(WarningText + errors);
         }
         private static string Tail(string text) { return text.Length <= 64000 ? text : "（界面仅保留最近日志，完整记录见运行目录 requests 下日志）\n" + text.Substring(text.Length - 63000); }
-        public void Dispose() { timer.Stop(); service.Stop(); prediction.Stop(); similarity.Stop(); scene.Stop(); }
+        public void Dispose() { timer.Stop(); service.Stop(); prediction.Stop(); trajectory.Stop(); similarity.Stop(); scene.Stop(); }
 
         private sealed class RunCommandImpl : ICommand
         {

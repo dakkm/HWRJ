@@ -1,0 +1,53 @@
+﻿Default window 1400x850 PASS
+Three navigation groups PASS
+Fourteen business navigation leaves PASS
+Tree selection: 任务设置 PASS
+Tree selection: 目标参数 PASS
+Tree selection: 场景与运动 PASS
+Tree selection: 环境与观测 PASS
+Tree selection: 计算与输出 PASS
+Tree selection: 正向计算 PASS
+Tree selection: 智能预测 PASS
+Tree selection: 轨迹生成 PASS
+Tree selection: 相似度评估 PASS
+Tree selection: 红外场景构建 PASS
+Tree selection: 当前任务 PASS
+Tree selection: 历史任务 PASS
+Tree selection: 输出结果 PASS
+Tree selection: 日志与告警 PASS
+ResultTabs count PASS
+ResultTabs switch 0 PASS
+ResultTabs switch 1 PASS
+ResultTabs switch 2 PASS
+ResultTabs switch 3 PASS
+LogTabs count PASS
+LogTabs switch 0 PASS
+LogTabs switch 1 PASS
+LogTabs switch 2 PASS
+Placeholder 新建任务 PASS
+Placeholder 打开任务 PASS
+Placeholder 保存任务 PASS
+Placeholder 运行 PASS
+Placeholder 停止 PASS
+Body Grid structure PASS
+Resize 1000x650 PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Resize 1400x850 PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Resize 1800x1000 PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Main region visible PASS
+Maximized layout PASS
+Adjusted panel dimensions PASS
+Three GridSplitters PASS

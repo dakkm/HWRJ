@@ -23,7 +23,7 @@ namespace PreProcess.Wpf.Services.Execution
         {
             if (String.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) throw new DirectoryNotFoundException("请选择有效的参考/候选结果目录。");
             if (!File.Exists(Path.Combine(path, "temperature_history.csv")) || !File.Exists(Path.Combine(path, "infrared_response_history.csv")))
-                throw new ArgumentException("当前03入口要求01正式output目录（温度与红外历史文件）。02预测输出不兼容；不会转换或伪造物理结果。");
+                throw new ArgumentException("当前03入口要求标准响应output目录，其中必须包含温度与红外历史文件。请选择01正向output，或02在both模式下生成的run_xxx\\output。");
             // Detailed column/time-axis checks remain with the authoritative backend extractor.
         }
     }

@@ -1,0 +1,66 @@
+﻿<Window x:Class="PreProcess.Wpf.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="clr-namespace:PreProcess.Wpf.ViewModels"
+ xmlns:views="clr-namespace:PreProcess.Wpf.Views"
+ Title="红外场景工作台" Width="1400" Height="850" MinWidth="1000" MinHeight="650" WindowStartupLocation="CenterScreen">
+ <Window.DataContext><vm:MainWindowViewModel/></Window.DataContext>
+ <Window.Resources>
+  <DataTemplate DataType="{x:Type vm:NavigationItemViewModel}"><views:PlaceholderPage/></DataTemplate>
+ <DataTemplate DataType="{x:Type vm:TaskSettingsViewModel}"><views:TaskSettingsView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:TargetSettingsViewModel}"><views:TargetSettingsView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:SceneMotionViewModel}"><views:SceneMotionView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:EnvironmentObservationViewModel}"><views:EnvironmentObservationView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:CalculationOutputViewModel}"><views:CalculationOutputView/></DataTemplate>
+</Window.Resources>
+ <DockPanel>
+  <Menu DockPanel.Dock="Top">
+   <MenuItem Header="文件"><MenuItem Header="新建任务" Command="{Binding Editor.NewCommand}"/><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}"/></MenuItem>
+   <MenuItem Header="任务"><MenuItem Header="任务设置" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[0].Children[0]}"/></MenuItem>
+   <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding PlaceholderCommand}" CommandParameter="运行"/><MenuItem Header="停止" Command="{Binding PlaceholderCommand}" CommandParameter="停止"/></MenuItem>
+   <MenuItem Header="查看"><MenuItem Header="输出结果" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[2]}"/><MenuItem Header="日志与告警" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[3]}"/></MenuItem>
+   <MenuItem Header="帮助"><MenuItem Header="关于工作台" Command="{Binding PlaceholderCommand}" CommandParameter="帮助"/></MenuItem>
+  </Menu>
+  <ToolBarTray DockPanel.Dock="Top" IsLocked="True"><ToolBar>
+   <Button Content="新建任务" Command="{Binding Editor.NewCommand}" Padding="10,4"/>
+   <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" Padding="10,4"/>
+   <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" Padding="10,4"/>
+   <Separator/><Button Content="运行" Command="{Binding PlaceholderCommand}" CommandParameter="运行" Padding="16,4"/>
+   <Button Content="停止" Command="{Binding PlaceholderCommand}" CommandParameter="停止" Padding="16,4"/>
+  </ToolBar></ToolBarTray>
+  <StatusBar DockPanel.Dock="Bottom"><TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis"/></StatusBar>
+  <Grid Margin="8">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="230" MinWidth="170"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="320"/><ColumnDefinition Width="6"/><ColumnDefinition Width="350" MinWidth="240"/></Grid.ColumnDefinitions>
+   <Border Style="{StaticResource Panel}"><DockPanel>
+    <TextBlock DockPanel.Dock="Top" Text="任务与功能导航" Style="{StaticResource PanelTitle}"/>
+    <TreeView x:Name="NavigationTree" ItemsSource="{Binding Navigation}" SelectedItemChanged="OnNavigationSelectionChanged" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="任务与功能导航">
+     <TreeView.ItemTemplate><HierarchicalDataTemplate ItemsSource="{Binding Children}"><TextBlock Text="{Binding Title}"/></HierarchicalDataTemplate></TreeView.ItemTemplate>
+    </TreeView>
+   </DockPanel></Border>
+   <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整导航区宽度"/>
+   <Grid Grid.Column="2">
+    <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="230"/><RowDefinition Height="6"/><RowDefinition Height="190" MinHeight="120"/></Grid.RowDefinitions>
+    <Border Style="{StaticResource Panel}"><DockPanel>
+     <TextBlock DockPanel.Dock="Top" Text="参数 / 数据编辑区" Style="{StaticResource PanelTitle}"/>
+     <ContentControl x:Name="EditorContent" Content="{Binding CurrentContent}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+    </DockPanel></Border>
+    <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整编辑区与日志区高度"/>
+    <Border Grid.Row="2" Style="{StaticResource Panel}"><TabControl x:Name="LogTabs" BorderThickness="0" AutomationProperties.Name="日志告警进度">
+     <TabItem Header="日志"><ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="日志显示区域已就绪。当前没有运行日志。" Style="{StaticResource EmptyText}"/></ScrollViewer></TabItem>
+     <TabItem Header="告警"><TextBlock Text="暂无告警。本阶段未连接任务运行。" Style="{StaticResource EmptyText}"/></TabItem>
+     <TabItem Header="进度"><StackPanel Margin="18"><TextBlock Text="等待任务 · 进度占位" Margin="0,0,0,12"/><ProgressBar Minimum="0" Maximum="100" Value="0" Height="18" AutomationProperties.Name="任务进度"/></StackPanel></TabItem>
+    </TabControl></Border>
+   </Grid>
+   <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整结果区宽度"/>
+   <Border Grid.Column="4" Style="{StaticResource Panel}"><DockPanel>
+    <TextBlock DockPanel.Dock="Top" Text="结果显示区" Style="{StaticResource PanelTitle}"/>
+    <TabControl x:Name="ResultTabs" BorderThickness="0" AutomationProperties.Name="结果显示">
+     <TabItem Header="曲线"><TextBlock Text="曲线显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
+     <TabItem Header="点图像"><TextBlock Text="点图像显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
+     <TabItem Header="数据表"><TextBlock Text="数据表显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
+     <TabItem Header="结果摘要"><TextBlock Text="结果摘要显示区域。暂无结果。" Style="{StaticResource EmptyText}"/></TabItem>
+    </TabControl>
+   </DockPanel></Border>
+  </Grid>
+ </DockPanel>
+</Window>
