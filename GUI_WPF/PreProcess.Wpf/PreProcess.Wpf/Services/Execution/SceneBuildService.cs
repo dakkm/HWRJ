@@ -7,7 +7,7 @@ namespace PreProcess.Wpf.Services.Execution
 {
     public sealed class SceneBuildService : ModuleExecutionService
     {
-        public Task<RunRecord> RunAsync(TaskModel task, int candidates, BackendPaths paths = null, CancellationToken token = default(CancellationToken))
+        public Task<RunRecord> RunAsync(TaskModel task, int candidates, BackendPaths paths = null, CancellationToken token = default(CancellationToken), string selectedTask = null)
         {
             return ExecuteAsync("04", paths, (package, submission, request, record) =>
             {
@@ -19,7 +19,7 @@ namespace PreProcess.Wpf.Services.Execution
                 request.Arguments.Add("--request"); request.Arguments.Add(record.RequestPath);
                 request.Arguments.Add("--config"); request.Arguments.Add(Path.Combine(package, "04-红外场景构建", "01-输入文件", "scene_search_config.json"));
                 // 04 owns the full 02/01/03 chain and its reference cache. No GUI re-orchestration.
-            }, token);
+            }, token, null, selectedTask);
         }
     }
 }

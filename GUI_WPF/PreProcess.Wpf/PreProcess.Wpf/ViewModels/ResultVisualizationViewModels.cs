@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -43,7 +44,11 @@ namespace PreProcess.Wpf.ViewModels
                     double first = table.Rows.Min(r => Number(r, "solution_index"));
                     rows = rows.Where(r => Number(r, "solution_index") == first);
                 }
-                foreach (ResultColumn column in table.Columns.Where(c => IsTemperature(c.Key)))
+                // The result panel is a single-target view. Keep the primary
+                // target (T_1) for forward-history tables; prediction and
+                // comparison tables use their explicitly named temperature
+                // columns and are retained when present.
+                foreach (ResultColumn column in table.Columns.Where(c => IsDisplayedTemperature(c.Key)))
                 {
                     var points = new List<ChartPointViewModel>();
                     foreach (ResultRow row in rows)
@@ -59,9 +64,11 @@ namespace PreProcess.Wpf.ViewModels
             return chart;
         }
 
-        private static bool IsTemperature(string key)
+        private static bool IsDisplayedTemperature(string key)
         {
-            return key.StartsWith("T_", StringComparison.Ordinal) || key.IndexOf("temperature", StringComparison.OrdinalIgnoreCase) >= 0 && key.EndsWith("_K", StringComparison.Ordinal);
+            if (String.Equals(key, "T_1", StringComparison.Ordinal)) return true;
+            if (key.StartsWith("T_", StringComparison.Ordinal)) return false;
+            return key.IndexOf("temperature", StringComparison.OrdinalIgnoreCase) >= 0 && key.EndsWith("_K", StringComparison.Ordinal);
         }
         private static string SeriesName(string artifact, string key)
         {
@@ -86,6 +93,7 @@ namespace PreProcess.Wpf.ViewModels
         public ImageSource Image { get; private set; }
         public string MinimumLabel { get; private set; }
         public string MaximumLabel { get; private set; }
+        public System.Windows.Visibility ScaleVisibility { get; private set; }
 
         public static PointImageViewModel From(PointImageResult result)
         {
@@ -108,7 +116,28 @@ namespace PreProcess.Wpf.ViewModels
                 Description = "Frame " + result.FrameId.ToString(CultureInfo.InvariantCulture) + " · " + result.TimeSeconds.ToString("G6", CultureInfo.InvariantCulture) + " s · " + result.Width + " × " + result.Height,
                 Image = bitmap,
                 MinimumLabel = minimum.ToString("G4", CultureInfo.InvariantCulture) + unit,
-                MaximumLabel = maximum.ToString("G4", CultureInfo.InvariantCulture) + unit
+                MaximumLabel = maximum.ToString("G4", CultureInfo.InvariantCulture) + unit,
+                ScaleVisibility = System.Windows.Visibility.Visible
+            };
+        }
+
+        public static PointImageViewModel FromFile(string path, string name)
+        {
+            if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.UriSource = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return new PointImageViewModel
+            {
+                Name = name,
+                Description = bitmap.PixelWidth + " × " + bitmap.PixelHeight + " · " + Path.GetFileName(path),
+                Image = bitmap,
+                MinimumLabel = String.Empty,
+                MaximumLabel = String.Empty,
+                ScaleVisibility = System.Windows.Visibility.Collapsed
             };
         }
 

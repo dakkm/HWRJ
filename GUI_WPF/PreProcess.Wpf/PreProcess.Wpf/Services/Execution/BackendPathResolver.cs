@@ -18,30 +18,20 @@ namespace PreProcess.Wpf.Services.Execution
         public BackendPaths Resolve()
         {
             string app = AppDomain.CurrentDomain.BaseDirectory;
-            string package = ConfigurationManager.AppSettings["BackendRoot"];
-            if (!String.IsNullOrWhiteSpace(package)) package = Absolute(app, package);
-            else
-            {
-                for (var directory = new DirectoryInfo(app); directory != null; directory = directory.Parent)
-                {
-                    string candidate = Path.Combine(directory.FullName, "coreprogram");
-                    if (File.Exists(Path.Combine(candidate, "config.json"))) { package = candidate; break; }
-                }
-            }
-            if (String.IsNullOrWhiteSpace(package) || !File.Exists(Path.Combine(package, "config.json")))
-                throw new FileNotFoundException("未找到后端程序包，请配置 BackendRoot。");
+            string package = ResolvePackageRoot(app);
             var config = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(package, "config.json")));
             var entries = (Dictionary<string, object>)config["standard_entries"];
             string entry = Absolute(package, (string)entries["01_forward"]);
             if (!File.Exists(entry)) throw new FileNotFoundException("正向计算入口文件不存在。", entry);
             string python = ConfigurationManager.AppSettings["PythonExecutable"];
             python = FindExecutable(String.IsNullOrWhiteSpace(python) ? "python.exe" : python, app);
-            string runtime = ConfigurationManager.AppSettings["RuntimeRoot"];
-            if (String.IsNullOrWhiteSpace(runtime)) runtime = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PreProcess", "Runtime");
-            else runtime = Absolute(app, runtime);
-            // Respect the backend's official --run-root option; never use a protected package as writable storage.
-            if (IsWithin(runtime, package)) throw new ArgumentException("运行目录不能位于冻结的后端程序包内。");
+            string runtime = ResolveRuntimeRoot(app, package);
             return new BackendPaths { PackageRoot = package, Entry = entry, Python = python, RuntimeRoot = runtime };
+        }
+        public string ResolveRuntimeRoot()
+        {
+            string app = AppDomain.CurrentDomain.BaseDirectory;
+            return ResolveRuntimeRoot(app, ResolvePackageRoot(app));
         }
         public static string FindExecutable(string name, string baseDirectory)
         {
@@ -63,6 +53,34 @@ namespace PreProcess.Wpf.Services.Execution
             string root = Path.GetFullPath(directory).TrimEnd('\\', '/');
             string full = Path.GetFullPath(path).TrimEnd('\\', '/');
             return String.Equals(root, full, StringComparison.OrdinalIgnoreCase) || full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        }
+        private static string ResolvePackageRoot(string app)
+        {
+            string package = ConfigurationManager.AppSettings["BackendRoot"];
+            if (!String.IsNullOrWhiteSpace(package)) package = Absolute(app, package);
+            else
+            {
+                for (var directory = new DirectoryInfo(app); directory != null; directory = directory.Parent)
+                {
+                    string candidate = Path.Combine(directory.FullName, "coreprogram");
+                    if (File.Exists(Path.Combine(candidate, "config.json"))) { package = candidate; break; }
+                }
+            }
+            if (String.IsNullOrWhiteSpace(package) || !File.Exists(Path.Combine(package, "config.json")))
+                throw new FileNotFoundException("未找到后端程序包，请配置 BackendRoot。");
+            return Path.GetFullPath(package);
+        }
+        private static string ResolveRuntimeRoot(string app, string package)
+        {
+            string runtime = ConfigurationManager.AppSettings["RuntimeRoot"];
+            if (String.IsNullOrWhiteSpace(runtime))
+            {
+                string projectRoot = Directory.GetParent(Path.GetFullPath(package).TrimEnd('\\', '/')).FullName;
+                runtime = Path.Combine(projectRoot, "output");
+            }
+            else runtime = Absolute(app, runtime);
+            if (IsWithin(runtime, package)) throw new ArgumentException("运行目录不能位于冻结的后端程序包内。");
+            return Path.GetFullPath(runtime);
         }
         private static string Absolute(string root, string path) { return Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(root, path)); }
     }

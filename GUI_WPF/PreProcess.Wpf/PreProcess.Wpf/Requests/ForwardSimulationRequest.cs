@@ -31,6 +31,10 @@ namespace PreProcess.Requests
         public double[] Direction { get; set; }
         public double[] Velocity { get; set; }
         public double[] AngularVelocity { get; set; }
+        public string CompanionType { get; set; }
+        public string AttitudeMotionType { get; set; }
+        public double[] MicroMotionParameters { get; set; }
+        public string SimilarityLevel { get; set; }
     }
 
     public class ObservationRequest

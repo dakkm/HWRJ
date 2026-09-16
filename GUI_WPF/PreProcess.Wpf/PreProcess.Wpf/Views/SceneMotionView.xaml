@@ -35,6 +35,17 @@
           </Expander>
         </StackPanel>
       </GroupBox>
+      <GroupBox Header="红外伴飞物与姿态特征" Margin="0,10,0,0" Padding="10" IsEnabled="{Binding Editor.Execution.CanEdit}">
+        <StackPanel>
+          <TextBlock Text="红外伴飞物的类型" />
+          <TextBox Margin="0,4,0,8" Padding="6" Text="{Binding Editor.Task.Scene.CompanionType}" IsReadOnly="True" AutomationProperties.Name="红外伴飞物的类型" />
+          <TextBlock Text="姿态运动类型" />
+          <TextBox Margin="0,4,0,8" Padding="6" Text="{Binding Editor.Task.Scene.AttitudeMotionType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="姿态运动类型" />
+          <TextBlock Text="微动参数" />
+          <views:Vector3Editor DataContext="{Binding Editor.Task.Scene.MicroMotionParameters}" />
+          <TextBlock Text="伴飞物类型固定为球壳；姿态运动类型默认为“默认”，微动参数默认 0 0 0。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6,0,0" />
+        </StackPanel>
+      </GroupBox>
       <GroupBox Header="单目标状态" Margin="0,10,0,0" Padding="10">
         <StackPanel>
           <TextBlock Text="目标编号" />
@@ -44,7 +55,7 @@
             <views:Vector3Editor DataContext="{Binding Editor.SelectedTarget.Motion.Position}" />
           </StackPanel>
           <StackPanel Margin="0,8">
-            <TextBlock Text="相对速度 (m/s)" TextWrapping="Wrap" />
+            <TextBlock Text="分离速度矢量 (m/s)" TextWrapping="Wrap" />
             <views:Vector3Editor DataContext="{Binding Editor.SelectedTarget.Motion.Velocity}" />
           </StackPanel>
           <StackPanel Margin="0,8">
@@ -52,11 +63,11 @@
             <views:Vector3Editor DataContext="{Binding Editor.SelectedTarget.Motion.Acceleration}" />
           </StackPanel>
           <StackPanel Margin="0,5">
-            <TextBlock Text="释放时间 (s)" TextWrapping="Wrap" />
-            <TextBox Margin="0,4,0,0" Padding="6" IsEnabled="{Binding Editor.SelectedTarget.Motion.CanChangeActivation}" Text="{Binding Editor.SelectedTarget.Motion.ReleaseTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="释放时间 (s)" />
+            <TextBlock Text="分离时间 (s)" TextWrapping="Wrap" />
+            <TextBox Margin="0,4,0,0" Padding="6" IsEnabled="{Binding Editor.SelectedTarget.Motion.CanChangeActivation}" Text="{Binding Editor.SelectedTarget.Motion.ReleaseTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="分离时间 (s)" />
           </StackPanel>
           <CheckBox Content="启用目标" IsChecked="{Binding Editor.SelectedTarget.Motion.Active}" IsEnabled="{Binding Editor.SelectedTarget.Motion.CanChangeActivation}" Margin="0,8" />
-          <TextBlock Text="1号目标固定启用且释放时间为零。相对速度和加速度用于释放后的分离运动。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
+          <TextBlock Text="1号目标固定启用且分离时间为零。分离速度矢量和相对加速度用于分离后的运动。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
         </StackPanel>
       </GroupBox>
     </StackPanel>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Web.Script.Serialization;
@@ -38,7 +39,9 @@ namespace PreProcess.Wpf.Services
                 "CASE", Obj("TOTAL_TIME", task.Settings.Duration, "NUM_SPHERES", task.Settings.TargetCount),
                 "ENVIRONMENT", Obj("SOLAR_FLUX", e.SolarFlux, "SOLAR_DIRECTION", V(e.SunDirection), "ENVIRONMENT_TEMP", e.RadiationTemperature),
                 "GROUP_STATE", Obj("GROUP_CENTER", V(s.Position), "GROUP_NORMAL", V(s.Direction), "GROUP_UP", V(s.Up),
-                    "GROUP_VELOCITY", V(s.Velocity), "GROUP_ANGULAR_VELOCITY", V(s.AngularVelocity), "GROUP_ANGULAR_ACCELERATION", V(s.AngularAcceleration)),
+                    "GROUP_VELOCITY", V(s.Velocity), "GROUP_ANGULAR_VELOCITY", V(s.AngularVelocity), "GROUP_ANGULAR_ACCELERATION", V(s.AngularAcceleration),
+                    "COMPANION_TYPE", BackendCompanionType(s.CompanionType), "ATTITUDE_MOTION_TYPE", BackendAttitudeMotionType(s.AttitudeMotionType),
+                    "MICRO_MOTION_PARAMS", V(s.MicroMotionParameters), "SIMILARITY_LEVEL", task.Settings.SimilarityIndex.ToString("0.########", CultureInfo.InvariantCulture)),
                 "OBSERVATION", Obj("APERTURE_SIZE", e.ApertureSize, "APERTURE_CENTER", V(e.ObserverPosition),
                     "APERTURE_NORMAL", V(e.ObserverDirection), "APERTURE_UP", V(e.ObserverUp), "APERTURE_VELOCITY", V(e.ObserverVelocity),
                     "APERTURE_ANGULAR_VELOCITY", V(e.ObserverAngularVelocity), "APERTURE_ANGULAR_ACCELERATION", V(e.ObserverAngularAcceleration),
@@ -76,6 +79,15 @@ namespace PreProcess.Wpf.Services
         {
             if (value == null) throw new ArgumentException("缺少三分量向量。");
             return ForwardSimulationMapper.MapVector(value);
+        }
+        private static string BackendCompanionType(string value)
+        {
+            if (String.Equals(value, "球壳", StringComparison.Ordinal) || String.Equals(value, "SPHERE", StringComparison.OrdinalIgnoreCase)) return "SPHERE";
+            throw new ArgumentException("当前红外伴飞物类型仅支持球壳。");
+        }
+        private static string BackendAttitudeMotionType(string value)
+        {
+            return String.Equals(value, "默认", StringComparison.Ordinal) ? "NONE" : value;
         }
         private static Dictionary<string, object> Obj(params object[] pairs)
         {

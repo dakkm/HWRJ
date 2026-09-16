@@ -20,7 +20,7 @@ namespace PreProcess.Wpf.Services.Execution
         public event Action<ProcessRunState> StateChanged;
         public void Stop() { lock (gate) stop?.Cancel(); manager.Stop(); }
         protected async Task<RunRecord> ExecuteAsync(string module, BackendPaths paths,
-            Action<string, string, ProcessRunRequest, RunRecord> prepare, CancellationToken token, TimeSpan? limit = null)
+            Action<string, string, ProcessRunRequest, RunRecord> prepare, CancellationToken token, TimeSpan? limit = null, string selectedTask = null)
         {
             var lease = ExecutionLease.TryEnter();
             if (lease == null) throw new InvalidOperationException("已有模块正在运行，请等待或停止。");
@@ -29,7 +29,7 @@ namespace PreProcess.Wpf.Services.Execution
             using (var cancel = CancellationTokenSource.CreateLinkedTokenSource(token))
             {
                 lock (gate) stop = cancel;
-                string submission = null, latest = null, previous = null, outputRoot = null;
+                string submission = null, latest = null, previous = null, outputRoot = null, resultRoot = null;
                 StreamWriter stdout = null, stderr = null;
                 object logGate = new object(); string storageError = null;
                 Action<ProcessLogEvent> onLog = item =>
@@ -63,14 +63,18 @@ namespace PreProcess.Wpf.Services.Execution
                         outputRoot = Path.Combine(moduleRoot, module == "02" ? "04-输出文件" : "03-输出文件");
                         latest = Path.Combine(outputRoot, "latest_run.json");
                         previous = File.Exists(latest) ? File.ReadAllText(latest) : null;
-                        submission = Path.Combine(paths.RuntimeRoot, "requests", module, Guid.NewGuid().ToString("N"));
-                        Directory.CreateDirectory(submission);
+                        submission = TaskDirectoryManager.Create(paths.RuntimeRoot, module, selectedTask);
+                        record.ExecutionDirectory = submission;
+                        record.TaskDirectory = Directory.GetParent(Path.GetDirectoryName(submission)).FullName;
+                        resultRoot = Path.Combine(submission, "results");
                         stdout = new StreamWriter(Path.Combine(submission, "stdout.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
                         stderr = new StreamWriter(Path.Combine(submission, "stderr.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
                         request = new ProcessRunRequest { Executable = paths.Python, WorkingDirectory = package,
                             Arguments = new List<string> { "-B", "-u", entry }, Timeout = limit ?? TimeSpan.FromHours(6),
                             EnvironmentVariables = new Dictionary<string, string> { { "PYTHONUTF8", "1" }, { "PYTHONIOENCODING", "utf-8" }, { "PYTHONDONTWRITEBYTECODE", "1" } } };
                         prepare(package, submission, request, record);
+                        if (module == "02") { request.Arguments.Add("--run-root"); request.Arguments.Add(resultRoot); }
+                        else if (module == "03") { request.Arguments.Add("--output-dir"); request.Arguments.Add(resultRoot); }
                         onLog(new ProcessLogEvent { Text = "Executable: " + request.Executable + "\nArguments: " + String.Join(" ", System.Linq.Enumerable.Select(request.Arguments, WindowsJobProcess.Quote)) });
                     }, cancel.Token).ConfigureAwait(false);
                     var result = await manager.RunAsync(request, cancel.Token).ConfigureAwait(false);
@@ -80,12 +84,14 @@ namespace PreProcess.Wpf.Services.Execution
                     {
                         var pointer = ReadObject(latest);
                         string directory = pointer["run_dir"] as string;
-                        if (!BackendPathResolver.IsWithin(directory, Path.Combine(outputRoot, "runs")) || !Directory.Exists(directory))
+                        string expectedRoot = module == "04" ? Path.Combine(outputRoot, "runs") : resultRoot;
+                        if (!BackendPathResolver.IsWithin(directory, expectedRoot) || !Directory.Exists(directory))
                             throw new InvalidDataException("后端返回的运行目录无效。");
                         record.RunId = pointer["run_id"] as string;
                         if (Path.GetFileName(directory) != record.RunId) throw new InvalidDataException("运行编号与目录不一致。");
                         record.ResultDirectory = record.RunDirectory = directory;
                         record.BackendStatus = pointer["status"] as string;
+                        if (module == "04") MoveResultIntoTask(record, resultRoot);
                     }
                     if (record.State == ProcessRunState.Completed)
                     {
@@ -121,6 +127,14 @@ namespace PreProcess.Wpf.Services.Execution
                 }
             }
             return record;
+        }
+        private static void MoveResultIntoTask(RunRecord record, string resultRoot)
+        {
+            Directory.CreateDirectory(resultRoot);
+            string destination = Path.Combine(resultRoot, record.RunId);
+            if (Directory.Exists(destination)) throw new IOException("任务结果目录已存在：" + destination);
+            Directory.Move(record.RunDirectory, destination);
+            record.RunDirectory = record.ResultDirectory = destination;
         }
         internal static Dictionary<string, object> ReadObject(string path) => new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
         internal static void WriteObject(string path, object value) => File.WriteAllText(path, new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.Serialize(value), new UTF8Encoding(false));

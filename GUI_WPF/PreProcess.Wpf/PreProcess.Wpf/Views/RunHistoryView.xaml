@@ -13,6 +13,7 @@
      <DataGridTextColumn Header="run_id" Binding="{Binding RunId}" Width="180"/>
      <DataGridTextColumn Header="状态" Binding="{Binding State}" Width="90"/>
      <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="*"/>
+     <DataGridTextColumn Header="任务目录" Binding="{Binding TaskDirectory}" Width="220"/>
      <DataGridTextColumn Header="结果目录" Binding="{Binding ResultDirectory}" Width="220"/>
     </DataGrid.Columns>
    </DataGrid>

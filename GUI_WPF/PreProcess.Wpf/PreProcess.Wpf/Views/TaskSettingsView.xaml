@@ -3,12 +3,12 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="18">
       <TextBlock Text="任务设置" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
-      <TextBlock Text="有效输入自动保留在内存。新建会重置当前任务；本阶段不读写任务文件。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
+      <TextBlock Text="软件启动时优先加载上次保存的任务；首次启动才使用 output/default.task.json 模板。保存会持久化整套参数，下次打开无需重新设置。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
       <WrapPanel Margin="0,8">
-        <Button Content="新建任务" Command="{Binding Editor.NewCommand}" Padding="10,5" Margin="0,0,6,6" />
-        <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" Padding="10,5" Margin="0,0,6,6" />
-        <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" Padding="10,5" Margin="0,0,6,6" />
+        <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Editor.Execution.CanEdit}" Padding="10,5" Margin="0,0,6,6" />
+        <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" IsEnabled="{Binding Editor.Execution.CanEdit}" Padding="10,5" Margin="0,0,6,6" />
       </WrapPanel>
+      <TextBlock Text="{Binding Editor.CurrentTaskPath, TargetNullValue=尚未保存任务文件, StringFormat=任务文件：{0}}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,2" />
       <TextBlock Text="{Binding Editor.Message}" TextWrapping="Wrap" Foreground="#35617F" Margin="0,6" />
       <StackPanel Margin="0,5">
         <TextBlock Text="任务名称" TextWrapping="Wrap" />
@@ -25,11 +25,6 @@
       <StackPanel Margin="0,5">
         <TextBlock Text="目标数量" TextWrapping="Wrap" />
         <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Settings.TargetCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="目标数量" />
-      </StackPanel>
-      <StackPanel Margin="0,5">
-        <TextBlock Text="相似指标 (%)"/>
-        <TextBox Padding="6" Margin="0,4,0,0" Text="{Binding Editor.Task.Settings.SimilarityIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="相似指标 (%)"/>
-        <TextBlock Text="允许范围：50%～100%；新建任务默认90%。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,4"/>
       </StackPanel>
       <TextBlock Text="减少目标数量会移除末尾目标及其独立设置。编辑器上限为10000个目标。红框表示输入无效，悬停可查看原因。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
     </StackPanel>

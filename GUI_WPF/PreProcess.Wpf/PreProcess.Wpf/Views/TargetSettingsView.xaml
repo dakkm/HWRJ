@@ -4,6 +4,13 @@
     <StackPanel Margin="18">
       <TextBlock Text="目标参数" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
       <TextBlock Text="统一设置应用到所有未启用独立物性的目标。质量由目标类型、外半径、壳厚和密度计算。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
+      <GroupBox Header="弹头相似度等级" Margin="0,10,0,0" Padding="10" IsEnabled="{Binding Editor.Execution.CanEdit}">
+        <StackPanel>
+          <TextBlock Text="相似度（%）" />
+          <TextBox Padding="6" Margin="0,4,0,0" Text="{Binding Editor.Task.Settings.SimilarityIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="弹头相似度等级 (%)" />
+          <TextBlock Text="允许范围：50%～100%；默认值为90%。该值同时写入正向计算输入，并用于红外场景构建的候选结果验收。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,4" />
+        </StackPanel>
+      </GroupBox>
       <GroupBox Header="统一设置" Margin="0,10,0,0" Padding="10">
         <StackPanel>
           <views:TargetPhysicsEditor DataContext="{Binding Editor.Task.Targets.Uniform}" />

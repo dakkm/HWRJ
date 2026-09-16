@@ -31,7 +31,22 @@ internal static class Program
     {
         string artifacts = Path.GetFullPath(args[0]); Directory.CreateDirectory(artifacts);
         var paths = new BackendPaths { PackageRoot = Path.GetFullPath(args[1]), Python = args[2], RuntimeRoot = Path.Combine(artifacts, "runtime") };
+        string groupedTask = Path.Combine(paths.RuntimeRoot, "tasks", "same-task"); Directory.CreateDirectory(groupedTask);
         var original = Directory.GetFiles(paths.PackageRoot, "*", SearchOption.AllDirectories).ToDictionary(x => x, RuntimePackage.Hash);
+        string forwardRun = Path.Combine(groupedTask, "01-正向计算", "run_001");
+        string forwardOutput = Path.Combine(forwardRun, "results", "source_output"); Directory.CreateDirectory(forwardOutput);
+        File.WriteAllText(Path.Combine(forwardOutput, "trajectory_history.csv"),
+            "case_id,frame_id,time_s,object_id,active_flag,released_flag,motion_stage,release_time_s,x_m,y_m,z_m,vx_m_s,vy_m_s,vz_m_s,speed_m_s,range_to_detector_m\n" +
+            "c,0,0,1,1,1,1,0,0,0,0,1,0,0,1,10\n" +
+            "c,1,1,1,1,1,1,0,1,0,0,1,0,0,1,9\n");
+        Write(Path.Combine(forwardRun, "run-location.json"), new RunRecord { Module = "01", RunId = "source",
+            TaskDirectory = groupedTask, ExecutionDirectory = forwardRun, ResultDirectory = forwardOutput,
+            State = ProcessRunState.Completed, StartedAt = DateTimeOffset.Now.AddMinutes(-1), EndedAt = DateTimeOffset.Now });
+        var trajectory = await new TrajectoryPostprocessService().RunAsync(groupedTask, false, paths);
+        Check(trajectory.State == ProcessRunState.Completed && File.Exists(Path.Combine(trajectory.TrajectoryResultDirectory, "trajectory_metrics.csv")),
+            "Trajectory module reuses latest forward trajectory and completes postprocess");
+        Check(Directory.GetDirectories(Path.Combine(groupedTask, "01-正向计算")).Length == 1 && trajectory.ExecutionDirectory.Contains("轨迹生成"),
+            "Trajectory module does not launch or create another 01 run");
         var task = ReferenceTaskLoader.Load(paths.PackageRoot);
         string generated = new RequestGenerator().Generate(task);
         new RequestGenerator().ValidateJson(generated);
@@ -40,16 +55,18 @@ internal static class Program
         var logs = new List<string>(); var progress = new List<string>();
         var prediction = new PredictionService();
         prediction.Log += x => { lock (logs) logs.Add(x.Text); }; prediction.Progress += x => progress.Add(x.State);
-        var result = await prediction.RunAsync(task, "temperature", paths);
+        var result = await prediction.RunAsync(task, "temperature", paths, default(CancellationToken), groupedTask);
         Console.WriteLine(Json.Serialize(result)); Write(Path.Combine(artifacts, "real02.json"), result);
         Check(result.State == ProcessRunState.Completed && result.ExitCode == 0, "Real02 temperature entry succeeds");
         Check(progress.Contains("temperature_completed") && progress.Contains("success"), "Real02 progress events read");
         Check(logs.Any(x => x.Contains("GUI_PROGRESS")), "Real02 stdout streamed");
         Check(Directory.Exists(result.ResultDirectory) && File.Exists(Path.Combine(result.ResultDirectory, "prediction_summary.json")), "Real02 result directory and envelope");
+        Check(BackendPathResolver.IsWithin(result.RequestPath, result.TaskDirectory) && BackendPathResolver.IsWithin(result.ResultDirectory, result.TaskDirectory), "Real02 request and result grouped by task");
         Check(File.Exists(Path.Combine(Path.GetDirectoryName(result.RequestPath), "run-location.json")) && result.EndedAt >= result.StartedAt && result.Module == "02", "Unified run record persisted");
         string predictionDir = result.ResultDirectory;
-        var second = await prediction.RunAsync(task, "temperature", paths);
+        var second = await prediction.RunAsync(task, "temperature", paths, default(CancellationToken), groupedTask);
         Check(second.State == ProcessRunState.Completed && second.RunId != result.RunId, "Repeated run permits mutable latest pointer and unique run ID");
+        Check(second.TaskDirectory == result.TaskDirectory && result.ExecutionDirectory.Contains("02-智能预测"), "Repeated module runs share selected task and use module folder");
         var bad = await prediction.RunAsync(new TaskModel(), "temperature", paths);
         Check(bad.State == ProcessRunState.Failed && bad.ExitCode != 0 && bad.ResultDirectory == null, "Real02 rejects incompatible default without adopting stale result");
         bad = await prediction.RunAsync(task, "unknown", paths);
@@ -58,10 +75,12 @@ internal static class Program
         string candDir = Path.Combine(artifacts, "SYNTHETIC_CONTRACT_FIXTURE", "candidate");
         GenerateFixture(refDir); GenerateFixture(candDir);
         var similarity = new SimilarityEvaluationService(); int events = 0; similarity.Progress += x => events++;
-        result = await similarity.RunAsync(refDir, candDir, null, paths);
+        result = await similarity.RunAsync(refDir, candDir, null, paths, default(CancellationToken), groupedTask);
         Console.WriteLine(Json.Serialize(result)); Write(Path.Combine(artifacts, "real03.json"), result);
         Check(result.State == ProcessRunState.Completed && result.ExitCode == 0, "Real03 evaluates explicitly synthetic contract fixtures");
         Check(File.Exists(Path.Combine(result.ResultDirectory, "similarity_components.csv")) && File.Exists(Path.Combine(result.ResultDirectory, "similarity_summary.json")), "Real03 output artifacts exist (no GUI metric parsing)");
+        Check(BackendPathResolver.IsWithin(result.RequestPath, result.TaskDirectory) && BackendPathResolver.IsWithin(result.ResultDirectory, result.TaskDirectory), "Real03 request and result grouped by task");
+        Check(result.TaskDirectory == groupedTask && result.ExecutionDirectory.Contains("03-相似度评估"), "Different modules share selected task and remain visible by module folder");
         Check(events == 0, "Real03 has no GUI_PROGRESS; no invented percentage");
         Check(Read(result.RequestPath).ContainsKey("reference_result") && !Read(result.RequestPath).ContainsKey("CASE"), "03 records result references rather than physical request");
         bad = await similarity.RunAsync(refDir, predictionDir, null, paths);
@@ -102,6 +121,7 @@ internal static class Program
             }
             result = await new SceneBuildService().RunAsync(task, 1, fake);
             Check(mode == "success" ? result.State == ProcessRunState.Completed : result.State == ProcessRunState.Failed, "04 fixture completion policy: " + mode);
+            if (result.ResultDirectory != null) Check(BackendPathResolver.IsWithin(result.ResultDirectory, result.TaskDirectory), "04 retained result grouped by task: " + mode);
             if (mode == "incomplete") Check(result.ExitCode == 3 && result.ResultDirectory != null && result.Message.Contains("足量"), "Exit3 incomplete retains output without false success");
         }
         Check(original.Count == Directory.GetFiles(paths.PackageRoot, "*", SearchOption.AllDirectories).Length && original.All(x => RuntimePackage.Hash(x.Key) == x.Value), "Frozen backend all file hashes unchanged");

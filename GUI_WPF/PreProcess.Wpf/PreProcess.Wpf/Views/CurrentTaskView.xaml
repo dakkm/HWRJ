@@ -8,11 +8,13 @@
    <GroupBox Header="任务概要" Padding="10" Margin="0,0,0,10">
     <Grid>
      <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
      <TextBlock Text="任务名称" Margin="0,4"/><TextBlock Grid.Column="1" Text="{Binding Editor.Task.Settings.Metadata.Name}" Margin="0,4"/>
      <TextBlock Grid.Row="1" Text="任务说明" Margin="0,4"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Editor.Task.Settings.Metadata.Description}" TextWrapping="Wrap" Margin="0,4"/>
      <TextBlock Grid.Row="2" Text="仿真时长" Margin="0,4"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Editor.Task.Settings.Duration, StringFormat={}{0} s}" Margin="0,4"/>
      <TextBlock Grid.Row="3" Text="目标数量" Margin="0,4"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Editor.Task.Settings.TargetCount}" Margin="0,4"/>
+     <TextBlock Grid.Row="4" Text="任务文件" Margin="0,4"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Editor.CurrentTaskPath, TargetNullValue=尚未保存}" TextWrapping="Wrap" Margin="0,4"/>
+     <TextBlock Grid.Row="5" Text="结果任务目录" Margin="0,4"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Editor.ResultTaskDirectory}" TextWrapping="Wrap" Margin="0,4"/>
     </Grid>
    </GroupBox>
    <GroupBox Header="运行状态" Padding="10" Margin="0,0,0,10">
@@ -29,11 +31,12 @@
    <GroupBox Header="最近一次运行" Padding="10">
     <Grid>
      <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
      <TextBlock Text="run_id" Margin="0,4"/><TextBlock Grid.Column="1" Text="{Binding Execution.LastRun.RunId, TargetNullValue=尚无运行记录}" Margin="0,4"/>
      <TextBlock Grid.Row="1" Text="模块" Margin="0,4"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Execution.LastRun.Module}" Margin="0,4"/>
      <TextBlock Grid.Row="2" Text="状态" Margin="0,4"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Execution.LastRun.Message}" TextWrapping="Wrap" Margin="0,4"/>
-     <TextBlock Grid.Row="3" Text="结果目录" Margin="0,4"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Execution.LastRun.ResultDirectory}" TextWrapping="Wrap" Margin="0,4"/>
+     <TextBlock Grid.Row="3" Text="任务目录" Margin="0,4"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Execution.LastRun.TaskDirectory}" TextWrapping="Wrap" Margin="0,4"/>
+     <TextBlock Grid.Row="4" Text="结果目录" Margin="0,4"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Execution.LastRun.ResultDirectory}" TextWrapping="Wrap" Margin="0,4"/>
     </Grid>
    </GroupBox>
   </StackPanel>

@@ -10,7 +10,6 @@ namespace PreProcess.Wpf.Models
         public TargetSettings Targets { get; } = new TargetSettings();
         public SceneMotionSettings Scene { get; } = new SceneMotionSettings();
         public EnvironmentObservationSettings Environment { get; } = new EnvironmentObservationSettings();
-        public CalculationSettings Calculation { get; } = new CalculationSettings();
         private readonly ObservableCollection<TargetInstance> targets = new ObservableCollection<TargetInstance>();
         public ReadOnlyObservableCollection<TargetInstance> IndividualTargets { get; }
 

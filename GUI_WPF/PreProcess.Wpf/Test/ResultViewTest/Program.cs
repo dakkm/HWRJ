@@ -57,7 +57,7 @@ namespace ResultViewTest
             Check(view.DataSets.Count == 3, "forward three data entries");
             Check(view.DataSets.Sum(x => x.RowCount) == 1454, "forward table row counts");
             Check(view.SelectedDataSet != null && view.SelectedDataSet.Rows.Count == 78, "forward default table");
-            Check(view.SelectedDataSet.Rows.Table.Columns.Cast<System.Data.DataColumn>().Any(x => x.ColumnName.Contains("[K]")), "table unit header");
+            Check(view.SelectedDataSet.Rows.Table.Columns.Cast<System.Data.DataColumn>().Any(x => x.ColumnName == "T_1"), "temperature column header");
             Check(view.Summary.Any(x => x.Name == "run_id" && x.Value == record.RunId), "run summary");
             return view;
         }

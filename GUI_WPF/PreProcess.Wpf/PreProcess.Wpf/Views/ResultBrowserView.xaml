@@ -46,6 +46,7 @@
     </Grid>
    </TabItem>
    <TabItem Header="温度曲线">
+    <TabItem.Style><Style TargetType="TabItem"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsTrajectoryResult}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding HidePhysicalVisualizations}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TabItem.Style>
     <Grid>
      <views:ChartView Model="{Binding TemperatureChart}" MinHeight="240" Visibility="{Binding HasTemperatureChart, Converter={StaticResource Visible}}"/>
      <TextBlock Text="{Binding TemperatureEmptyMessage}" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -53,7 +54,8 @@
      </TextBlock>
     </Grid>
    </TabItem>
-   <TabItem Header="红外图像">
+   <TabItem Header="{Binding ImageTabTitle}">
+    <TabItem.Style><Style TargetType="TabItem"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HidePhysicalVisualizations}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TabItem.Style>
     <Grid>
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
      <ComboBox ItemsSource="{Binding PointImages}" SelectedItem="{Binding SelectedPointImage}" DisplayMemberPath="Name" Margin="0,4,0,6" Visibility="{Binding HasPointImages, Converter={StaticResource Visible}}"/>

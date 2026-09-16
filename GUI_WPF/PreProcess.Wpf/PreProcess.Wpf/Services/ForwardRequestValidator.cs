@@ -30,6 +30,7 @@ namespace PreProcess.Wpf.Services
                     string type = (string)Object(field.Value, path)["type"];
                     var v = value[field.Key];
                     if (type == "boolean") Boolean(v, path);
+                    else if (type == "string") Token(v, path);
                     else if (type == "vector3")
                     {
                         var vector = v as IList;
@@ -102,6 +103,12 @@ namespace PreProcess.Wpf.Services
             return number;
         }
         private static void Boolean(object value, string path) { Require(value is bool, path + " 必须为 JSON true/false。"); }
+        private static void Token(object value, string path)
+        {
+            string text = value as string;
+            Require(!String.IsNullOrWhiteSpace(text) && text.IndexOfAny(new[] { ' ', '\t', '#', '=', '[', ']' }) < 0,
+                path + " 必须为不含空格或输入格式保留字符的非空字符串。");
+        }
         private static void Require(bool condition, string message) { if (!condition) throw new ArgumentException(message); }
     }
 }

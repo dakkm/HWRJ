@@ -5,24 +5,34 @@
   <StackPanel IsEnabled="{Binding CanEdit}">
    <TextBlock Text="当前功能由左侧“功能模块”导航确定。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8"/>
    <StackPanel Visibility="{Binding IsForward, Converter={StaticResource Visible}}">
-    <TextBlock Text="使用当前任务调用正向入口。轨迹由正向求解器生成；本页不执行轨迹后处理。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="使用当前任务依次调用 01 正向入口和 03 特征提取入口。输出结果汇总正向温度、红外响应、轨迹及响应特征。仅准备输入时不执行求解和特征提取。" TextWrapping="Wrap" Margin="0,8"/>
     <CheckBox Content="仅准备输入（不执行求解）" IsChecked="{Binding PrepareOnly}" Margin="0,8"/>
    </StackPanel>
+   <StackPanel Visibility="{Binding IsTrajectory, Converter={StaticResource Visible}}">
+    <TextBlock Text="直接读取当前任务最近一次成功正向计算的 trajectory_history.csv，只执行轨迹后处理，生成 trajectory_metrics.csv、三维轨迹图和目标到探测器距离曲线；不会再次调用 01，也不会调用 03。" TextWrapping="Wrap" Margin="0,8"/>
+    <CheckBox Content="统计中包含释放前、仍与载体连接的轨迹样本" IsChecked="{Binding TrajectoryIncludePrerelease}" Margin="0,8"/>
+   </StackPanel>
    <StackPanel Visibility="{Binding IsPrediction, Converter={StaticResource Visible}}">
-    <TextBlock Text="预测使用同一任务。后端只接受固定参考场景及允许范围内的统一物性。点图像另需后端模型依赖。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="运行前会自动把固定场景参数调整为代理模型参考工况，并保留当前统一内部热源、红外发射率和太阳吸收率。点图像另需后端模型依赖。" TextWrapping="Wrap" Margin="0,8"/>
     <ComboBox ItemsSource="{Binding PredictionModes}" SelectedItem="{Binding PredictionMode}"/>
-    <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
    </StackPanel>
    <StackPanel Visibility="{Binding IsSimilarity, Converter={StaticResource Visible}}">
     <TextBlock Text="当前评价器要求两份正式正向 output 目录（温度和红外历史文件）。原始 02 预测目录不符合该合同；不会自动转换或补算。" TextWrapping="Wrap" Margin="0,8"/>
-    <TextBlock Text="Reference result 目录"/><TextBox Text="{Binding ReferenceDirectory, UpdateSourceTrigger=PropertyChanged}"/>
-    <TextBlock Text="Candidate result 目录"/><TextBox Text="{Binding CandidateDirectory, UpdateSourceTrigger=PropertyChanged}"/>
-    <TextBlock Text="Evaluation config 路径（留空使用后端默认）"/><TextBox Text="{Binding EvaluationConfig, UpdateSourceTrigger=PropertyChanged}"/>
+    <TextBlock Text="参考正向结果目录"/>
+    <Grid Margin="0,3,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <TextBox Text="{Binding ReferenceDirectory, Mode=OneWay}" IsReadOnly="True" VerticalContentAlignment="Center"/>
+     <Button Grid.Column="1" Content="选择文件夹…" Command="{Binding SelectReferenceDirectoryCommand}" Padding="10,4" Margin="6,0,0,0"/>
+    </Grid>
+    <TextBlock Text="候选正向结果目录"/>
+    <Grid Margin="0,3,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <TextBox Text="{Binding CandidateDirectory, Mode=OneWay}" IsReadOnly="True" VerticalContentAlignment="Center"/>
+     <Button Grid.Column="1" Content="选择文件夹…" Command="{Binding SelectCandidateDirectoryCommand}" Padding="10,4" Margin="6,0,0,0"/>
+    </Grid>
+    <TextBlock Text="评价配置自动加载后端默认 similarity_config.json。" Foreground="#64748B" Margin="0,2,0,0"/>
    </StackPanel>
    <StackPanel Visibility="{Binding IsScene, Converter={StaticResource Visible}}">
-    <TextBlock Text="直接调用场景搜索入口，由后端完成预测、正向复核和评价。验收阈值取自计算与输出页面的当前任务；本操作会启动实际求解。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="直接调用场景搜索入口；运行前同样自动调整代理模型固定参数，再由后端完成预测、正向复核和评价。验收阈值取自目标参数页面；本操作会启动实际求解。" TextWrapping="Wrap" Margin="0,8"/>
     <TextBlock Text="所需候选数量"/><TextBox Text="{Binding RequiredCandidates, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
-    <Button Content="载入后端参考任务…" Command="{Binding LoadReferenceCommand}" HorizontalAlignment="Left" Margin="0,8"/>
    </StackPanel>
   </StackPanel>
   <StackPanel Orientation="Horizontal"><Button Content="运行本模块" Command="{Binding RunCommand}" Padding="12,6" Margin="0,8,12,8"/><Button Content="停止" Command="{Binding StopCommand}" Padding="12,6" Margin="0,8,12,8"/></StackPanel>

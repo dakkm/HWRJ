@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using PreProcess.Requests;
 using PreProcess.Wpf.Models;
 
@@ -35,7 +36,11 @@ namespace PreProcess.Wpf.Services.Mappers
                     Center = MapVector(task.Scene.Position),
                     Direction = MapVector(task.Scene.Direction),
                     Velocity = MapVector(task.Scene.Velocity),
-                    AngularVelocity = MapVector(task.Scene.AngularVelocity)
+                    AngularVelocity = MapVector(task.Scene.AngularVelocity),
+                    CompanionType = task.Scene.CompanionType == "球壳" ? "SPHERE" : task.Scene.CompanionType,
+                    AttitudeMotionType = task.Scene.AttitudeMotionType == "默认" ? "NONE" : task.Scene.AttitudeMotionType,
+                    MicroMotionParameters = MapVector(task.Scene.MicroMotionParameters),
+                    SimilarityLevel = task.Settings.SimilarityIndex.ToString("0.########", CultureInfo.InvariantCulture)
                 },
                 Observation = new ObservationRequest
                 {

@@ -1365,7 +1365,7 @@ logical function should_write_output_frame(frame_idx)
         character(len=256) :: key, value_str
         character(len=32) :: section
         real(8) :: v1, v2, v3
-        logical :: seen(27)
+        logical :: seen(31)
 
         ierr = 0
         solver_status = 'INVALID_INPUT'
@@ -1475,6 +1475,18 @@ logical function should_write_output_frame(frame_idx)
             case('GROUP_ANGULAR_ACCELERATION')
                 call require_clean_field(section,'GROUP_STATE',seen(11),key,ierr); if(ierr/=0) exit
                 read(value_str,*,iostat=ios) v1,v2,v3; group_angular_acceleration=(/v1,v2,v3/)
+            case('COMPANION_TYPE')
+                call require_clean_field(section,'GROUP_STATE',seen(28),key,ierr); if(ierr/=0) exit
+                companion_type_default=trim(to_uppercase(value_str)); ios=0
+            case('ATTITUDE_MOTION_TYPE')
+                call require_clean_field(section,'GROUP_STATE',seen(29),key,ierr); if(ierr/=0) exit
+                attitude_motion_type=trim(to_uppercase(value_str)); ios=0
+            case('MICRO_MOTION_PARAMS')
+                call require_clean_field(section,'GROUP_STATE',seen(30),key,ierr); if(ierr/=0) exit
+                read(value_str,*,iostat=ios) v1,v2,v3; micro_motion_params=(/v1,v2,v3/)
+            case('SIMILARITY_LEVEL')
+                call require_clean_field(section,'GROUP_STATE',seen(31),key,ierr); if(ierr/=0) exit
+                similarity_level=trim(to_uppercase(value_str)); ios=0
             case('APERTURE_SIZE')
                 call require_clean_field(section,'OBSERVATION',seen(12),key,ierr); if(ierr/=0) exit
                 read(value_str,*,iostat=ios) aperture_size
@@ -1530,11 +1542,11 @@ logical function should_write_output_frame(frame_idx)
                 solver_status='FORBIDDEN_INTERNAL_FIELD'
                 solver_message=trim(key)//' belongs to protected internal numerical config; use migration script for old inputs'
                 ierr=1; exit
-            case('SIMILARITY_LEVEL','REFERENCE_TEMPERATURE','REFERENCE_INTENSITY')
+            case('REFERENCE_TEMPERATURE','REFERENCE_INTENSITY')
                 solver_status='FORBIDDEN_DOWNSTREAM_FIELD'
                 solver_message=trim(key)//' belongs to downstream evaluation and is not a clean solver field'
                 ierr=1; exit
-            case('EARTH_MU','COMPANION_TYPE_DEFAULT','ATTITUDE_MOTION_TYPE','MICRO_MOTION_PARAMS')
+            case('EARTH_MU','COMPANION_TYPE_DEFAULT')
                 solver_status='FORBIDDEN_FIXED_CONTRACT_FIELD'
                 solver_message=trim(key)//' is a fixed solver contract and cannot be overridden'
                 ierr=1; exit

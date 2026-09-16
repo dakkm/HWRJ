@@ -7,8 +7,7 @@
 正式输入：
     与01共用的 forward-request-v1 JSON。
 
-示例：
-    cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明\02-智能预测\02-程序"
+示例（先进入 coreprogram\02-智能预测\02-程序）：
     python surrogate_prediction_runner.py --params-json "..\..\01-正向仿真\01-输入文件\forward_request_example.json" --mode both
 
 输出：

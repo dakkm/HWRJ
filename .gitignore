@@ -25,3 +25,35 @@ coreprogram/**/reference_runs/
 *.tmp
 *.log
 ~$*
+
+output/
+latest_run.json
+bin/
+obj/
+run_xxxxxx/
+
+# Generated / local artifacts
+artifacts/
+artifacts-portable/
+results/
+tools.zip
+
+# Local test runtime
+.tools/**/fixture-runtime/
+.tools/**/runtime/
+
+# Verification outputs
+GUI_WPF/Verification/
+
+# Local test runtime outputs
+.tools/**/fixture-runtime/
+.tools/**/runtime/
+.tools/**/ui-runtime/
+.tools/**/simulated/
+.tools/**/真实联调 with spaces/
+
+# Build/package temporary files
+*.bak
+
+# Local test workspace
+.tools/

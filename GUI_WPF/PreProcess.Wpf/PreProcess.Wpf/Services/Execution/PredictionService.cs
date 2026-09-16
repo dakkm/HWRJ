@@ -7,7 +7,7 @@ namespace PreProcess.Wpf.Services.Execution
 {
     public sealed class PredictionService : ModuleExecutionService
     {
-        public Task<RunRecord> RunAsync(TaskModel task, string mode = "temperature", BackendPaths paths = null, CancellationToken token = default(CancellationToken))
+        public Task<RunRecord> RunAsync(TaskModel task, string mode = "temperature", BackendPaths paths = null, CancellationToken token = default(CancellationToken), string selectedTask = null)
         {
             return ExecuteAsync("02", paths, (package, submission, request, record) =>
             {
@@ -15,7 +15,7 @@ namespace PreProcess.Wpf.Services.Execution
                 record.RequestPath = new RequestGenerator().Save(task, Path.Combine(submission, "request.json"));
                 request.Arguments.Add("--params-json"); request.Arguments.Add(record.RequestPath);
                 request.Arguments.Add("--mode"); request.Arguments.Add(mode);
-            }, token);
+            }, token, null, selectedTask);
         }
     }
 }

@@ -24,7 +24,7 @@ namespace PreProcess.Wpf
         private void UpdateEditing()
         {
             var vm = (MainWindowViewModel)DataContext;
-            EditorContent.IsEnabled = !vm.Execution.IsBusy || ReferenceEquals(vm.CurrentContent, vm.Execution) || vm.CurrentContent is CalculationOutputViewModel;
+            EditorContent.IsEnabled = !vm.Execution.IsBusy || ReferenceEquals(vm.CurrentContent, vm.Execution);
         }
         private async void OnClosing(object sender, CancelEventArgs e)
         {

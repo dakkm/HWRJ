@@ -67,6 +67,22 @@
         "type": "vector3",
         "unit": "rad/s^2",
         "constraint": "finite"
+      },
+      "COMPANION_TYPE": {
+        "type": "string",
+        "constraint": "non-empty token"
+      },
+      "ATTITUDE_MOTION_TYPE": {
+        "type": "string",
+        "constraint": "non-empty token"
+      },
+      "MICRO_MOTION_PARAMS": {
+        "type": "vector3",
+        "constraint": "finite"
+      },
+      "SIMILARITY_LEVEL": {
+        "type": "string",
+        "constraint": "non-empty token"
       }
     },
     "OBSERVATION": {

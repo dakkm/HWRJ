@@ -10,13 +10,21 @@ namespace PreProcess.Wpf.Services.Execution
         public string RunId { get; set; }
         public string RequestPath { get; set; }
         public string BackendRequestPath { get; set; }
+        public string TaskDirectory { get; set; }
+        public string ExecutionDirectory { get; set; }
         public string RunDirectory { get; set; }
         public string ResultDirectory { get; set; }
+        public string FeatureRunId { get; set; }
+        public string FeatureResultDirectory { get; set; }
         public string RuntimePackage { get; set; }
         public DateTimeOffset StartedAt { get; set; }
         public DateTimeOffset EndedAt { get; set; }
         public ProcessRunState State { get; set; }
         public int? ExitCode { get; set; }
+        public int? ForwardExitCode { get; set; }
+        public int? FeatureExitCode { get; set; }
+        public int? TrajectoryExitCode { get; set; }
+        public string TrajectoryResultDirectory { get; set; }
         public bool PrepareOnly { get; set; }
         public string Message { get; set; }
         public string Diagnostic { get; set; }

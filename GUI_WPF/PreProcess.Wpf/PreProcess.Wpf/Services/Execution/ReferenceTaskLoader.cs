@@ -1,13 +1,31 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using PreProcess.Wpf.Models;
 namespace PreProcess.Wpf.Services.Execution
 {
-    // Explicit user-selected preset, never an implicit prediction fallback or a second parameter model.
+    // Adapts fixed fields to the frozen surrogate contract while preserving its learned GUI inputs.
     public static class ReferenceTaskLoader
     {
+        public static TaskModel AdjustForPrediction(TaskModel current, string package)
+        {
+            if (current == null) throw new ArgumentNullException("current");
+            double power = current.Targets.Uniform.InternalPower;
+            double emissivity = current.Targets.Uniform.Emissivity;
+            double absorption = current.Targets.Uniform.SolarAbsorption;
+            var adjusted = Load(package);
+            adjusted.Settings.Metadata.Name = current.Settings.Metadata.Name;
+            adjusted.Settings.Metadata.Description = current.Settings.Metadata.Description;
+            adjusted.Settings.SimilarityIndex = current.Settings.SimilarityIndex;
+            adjusted.Targets.Uniform.InternalPower = power;
+            adjusted.Targets.Uniform.Emissivity = emissivity;
+            adjusted.Targets.Uniform.SolarAbsorption = absorption;
+            adjusted.Targets.Uniform.IrReflection = 1.0 - emissivity;
+            return adjusted;
+        }
+
         public static TaskModel Load(string package)
         {
             string json = File.ReadAllText(Path.Combine(package, "02-智能预测", "03-模型文件", "surrogate_reference_request.json"));
@@ -23,6 +41,15 @@ namespace PreProcess.Wpf.Services.Execution
             section = (Dictionary<string, object>)root["GROUP_STATE"];
             Vector(task.Scene.Position, section, "GROUP_CENTER"); Vector(task.Scene.Direction, section, "GROUP_NORMAL"); Vector(task.Scene.Up, section, "GROUP_UP");
             Vector(task.Scene.Velocity, section, "GROUP_VELOCITY"); Vector(task.Scene.AngularVelocity, section, "GROUP_ANGULAR_VELOCITY"); Vector(task.Scene.AngularAcceleration, section, "GROUP_ANGULAR_ACCELERATION");
+            if (section.ContainsKey("COMPANION_TYPE")) task.Scene.CompanionType = Convert.ToString(section["COMPANION_TYPE"]);
+            if (section.ContainsKey("ATTITUDE_MOTION_TYPE")) task.Scene.AttitudeMotionType = Convert.ToString(section["ATTITUDE_MOTION_TYPE"]);
+            if (section.ContainsKey("MICRO_MOTION_PARAMS")) Vector(task.Scene.MicroMotionParameters, section, "MICRO_MOTION_PARAMS");
+            if (section.ContainsKey("SIMILARITY_LEVEL"))
+            {
+                double similarity;
+                if (Double.TryParse(Convert.ToString(section["SIMILARITY_LEVEL"]), NumberStyles.Float, CultureInfo.InvariantCulture, out similarity) && similarity >= 50 && similarity <= 100)
+                    task.Settings.SimilarityIndex = similarity;
+            }
             section = (Dictionary<string, object>)root["OBSERVATION"];
             Vector(env.ObserverPosition, section, "APERTURE_CENTER"); Vector(env.ObserverDirection, section, "APERTURE_NORMAL"); Vector(env.ObserverUp, section, "APERTURE_UP");
             Vector(env.ObserverVelocity, section, "APERTURE_VELOCITY"); Vector(env.ObserverAngularVelocity, section, "APERTURE_ANGULAR_VELOCITY"); Vector(env.ObserverAngularAcceleration, section, "APERTURE_ANGULAR_ACCELERATION");

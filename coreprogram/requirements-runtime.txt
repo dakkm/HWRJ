@@ -1,0 +1,8 @@
+# Validated Windows x64 runtime for Python 3.10.
+numpy==2.1.3
+pandas==2.2.3
+joblib==1.4.2
+scikit-learn==1.6.1
+matplotlib==3.10.0
+tensorflow==2.21.0
+keras==3.12.1

@@ -133,11 +133,16 @@ def make_plots(by_obj, outdir: Path):
         print(f"[WARN] matplotlib unavailable; CSV metrics were generated, plots skipped: {exc}", file=sys.stderr)
         return
 
+    # The trajectory view is intended to show the primary target only.
+    # Keep all objects in the CSV/metrics outputs, but do not clutter the
+    # generated plots with decoy trajectories.
+    plot_objects = {1: by_obj[1]} if 1 in by_obj else {}
+
     # 3-D trajectory
     fig = plt.figure(figsize=(9, 7))
     ax = fig.add_subplot(111, projection="3d")
-    for object_id in sorted(by_obj):
-        pts = sorted(by_obj[object_id], key=lambda r: (r["time_s"], r["frame_id"]))
+    for object_id in sorted(plot_objects):
+        pts = sorted(plot_objects[object_id], key=lambda r: (r["time_s"], r["frame_id"]))
         if not pts:
             continue
         ax.plot([p["x_m"] for p in pts], [p["y_m"] for p in pts], [p["z_m"] for p in pts],
@@ -146,7 +151,7 @@ def make_plots(by_obj, outdir: Path):
     ax.set_ylabel("Y (m)")
     ax.set_zlabel("Z (m)")
     ax.set_title("Target/Decoy Trajectories")
-    if len(by_obj) <= 20:
+    if len(plot_objects) <= 20:
         ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(outdir / "trajectory_3d.png", dpi=200)
@@ -154,8 +159,8 @@ def make_plots(by_obj, outdir: Path):
 
     # Detector range history
     fig, ax = plt.subplots(figsize=(9, 5.5))
-    for object_id in sorted(by_obj):
-        pts = sorted(by_obj[object_id], key=lambda r: (r["time_s"], r["frame_id"]))
+    for object_id in sorted(plot_objects):
+        pts = sorted(plot_objects[object_id], key=lambda r: (r["time_s"], r["frame_id"]))
         if not pts:
             continue
         ax.plot([p["time_s"] for p in pts], [p["range_to_detector_m"] for p in pts],
@@ -164,7 +169,7 @@ def make_plots(by_obj, outdir: Path):
     ax.set_ylabel("Range to detector (m)")
     ax.set_title("Object-Detector Range History")
     ax.grid(True, alpha=0.25)
-    if len(by_obj) <= 20:
+    if len(plot_objects) <= 20:
         ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(outdir / "trajectory_range.png", dpi=200)

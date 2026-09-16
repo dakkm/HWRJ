@@ -11,23 +11,21 @@
 <DataTemplate DataType="{x:Type vm:TargetSettingsViewModel}"><views:TargetSettingsView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:SceneMotionViewModel}"><views:SceneMotionView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:EnvironmentObservationViewModel}"><views:EnvironmentObservationView/></DataTemplate>
-<DataTemplate DataType="{x:Type vm:CalculationOutputViewModel}"><views:CalculationOutputView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:ForwardRunViewModel}"><views:ForwardRunView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:CurrentTaskViewModel}"><views:CurrentTaskView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:RunHistoryViewModel}"><views:RunHistoryView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:OutputResultsViewModel}"><views:OutputResultsView/></DataTemplate></Window.Resources>
  <DockPanel>
   <Menu DockPanel.Dock="Top">
-   <MenuItem Header="文件"><MenuItem Header="新建任务" Command="{Binding Editor.NewCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}"/></MenuItem>
+   <MenuItem Header="文件"><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}" IsEnabled="{Binding Execution.CanEdit}"/></MenuItem>
    <MenuItem Header="任务"><MenuItem Header="任务设置" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[0].Children[0]}"/></MenuItem>
    <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding Execution.RunCommand}"/><MenuItem Header="停止" Command="{Binding Execution.StopCommand}"/></MenuItem>
    <MenuItem Header="查看"><MenuItem Header="输出结果" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[2]}"/></MenuItem>
    <MenuItem Header="帮助"><MenuItem Header="关于工作台" Command="{Binding PlaceholderCommand}" CommandParameter="帮助"/></MenuItem>
   </Menu>
   <ToolBarTray DockPanel.Dock="Top" IsLocked="True"><ToolBar>
-   <Button Content="新建任务" Command="{Binding Editor.NewCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
    <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
-   <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" Padding="10,4"/>
+   <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
    <Separator/><Button Content="运行" Command="{Binding Execution.RunCommand}" Padding="16,4"/>
    <Button Content="停止" Command="{Binding Execution.StopCommand}" Padding="16,4"/>
   </ToolBar></ToolBarTray>

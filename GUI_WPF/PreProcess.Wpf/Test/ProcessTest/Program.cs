@@ -131,6 +131,10 @@ internal static class Program
         File.WriteAllText(Path.Combine(artifacts, "prepare-record.json"), new JavaScriptSerializer().Serialize(prepared));
         Check(prepared.State == ProcessRunState.Completed && prepared.ExitCode == 0, "Real 01 prepare-only through RequestGenerator and ProcessManager: " + prepared.Message);
         Check(Directory.Exists(prepared.ResultDirectory) && File.Exists(Path.Combine(prepared.RunDirectory, "input.dat")), "Backend-created run_id and output directory");
+        Check(Directory.Exists(prepared.TaskDirectory) && BackendPathResolver.IsWithin(prepared.RequestPath, prepared.TaskDirectory) &&
+            BackendPathResolver.IsWithin(prepared.RunDirectory, prepared.TaskDirectory) &&
+            File.Exists(Path.Combine(prepared.ExecutionDirectory, "stdout.log")) && File.Exists(Path.Combine(prepared.ExecutionDirectory, "stderr.log")),
+            "Request logs and results grouped in one task directory");
         Check(serviceLogs.Any(x => x.Text.StartsWith("GUI_PROGRESS ") && x.Text.Contains("prepared")), "Real GUI_PROGRESS captured");
         Check(File.Exists(Path.Combine(Path.GetDirectoryName(prepared.RequestPath), "run-location.json")), "Run metadata persisted");
         Check(!File.Exists(Path.Combine(prepared.RunDirectory, "stdout.txt")), "Prepare-only did not execute solver");

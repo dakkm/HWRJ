@@ -7,8 +7,7 @@
 这意味着：文件基线可以冻结，但不能把该状态表述为“已完成全部功能验收”。
 
 二、补丁放置位置
-将本补丁中的以下文件复制到：
-C:\Users\PC\Desktop\新建文件夹\程序说明\
+将本补丁中的以下文件复制到 coreprogram 根目录：
 
 文件：
 00-版本信息.json
@@ -19,8 +18,7 @@ freeze_release.py
 verify_frozen_release.py
 
 三、正式封板
-在 CMD 中执行：
-cd /d "C:\Users\PC\Desktop\新建文件夹\程序说明"
+在 CMD 中进入 coreprogram 根目录后执行：
 python freeze_release.py
 
 成功后生成：

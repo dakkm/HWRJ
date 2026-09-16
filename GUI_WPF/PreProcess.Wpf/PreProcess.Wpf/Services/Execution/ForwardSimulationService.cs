@@ -25,7 +25,7 @@ namespace PreProcess.Wpf.Services.Execution
         public void Stop() { lock (gate) stop?.Cancel(); manager.Stop(); }
 
         public async Task<ForwardRunRecord> RunAsync(TaskModel task, bool prepareOnly = false, BackendPaths paths = null,
-            int timeoutSeconds = 1800, CancellationToken cancellationToken = default(CancellationToken))
+            int timeoutSeconds = 1800, CancellationToken cancellationToken = default(CancellationToken), string selectedTask = null)
         {
             if (Interlocked.CompareExchange(ref active, 1, 0) != 0) throw new InvalidOperationException("正向计算正在运行，请等待完成或停止。");
             var lease = ExecutionLease.TryEnter();
@@ -77,9 +77,10 @@ namespace PreProcess.Wpf.Services.Execution
                         if (!File.Exists(paths.Entry)) throw new FileNotFoundException("正向计算入口文件不存在。", paths.Entry);
                         if (BackendPathResolver.IsWithin(paths.RuntimeRoot, paths.PackageRoot)) throw new ArgumentException("运行文件不能写入冻结后端目录。");
                         if (timeoutSeconds <= 0) throw new ArgumentException("超时时间必须为正整数。");
-                        runRoot = Path.Combine(paths.RuntimeRoot, "runs");
-                        submission = Path.Combine(paths.RuntimeRoot, "requests", Guid.NewGuid().ToString("N"));
-                        Directory.CreateDirectory(submission);
+                        submission = TaskDirectoryManager.Create(paths.RuntimeRoot, "01", selectedTask);
+                        record.ExecutionDirectory = submission;
+                        record.TaskDirectory = Directory.GetParent(Path.GetDirectoryName(submission)).FullName;
+                        runRoot = Path.Combine(submission, "results");
                         record.RequestPath = generator.Save(task, Path.Combine(submission, "request.json"));
                         stdout = new StreamWriter(Path.Combine(submission, "stdout.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
                         stderr = new StreamWriter(Path.Combine(submission, "stderr.log"), false, new UTF8Encoding(false)) { AutoFlush = true };
@@ -101,7 +102,7 @@ namespace PreProcess.Wpf.Services.Execution
                     launchingBackend = true;
                     onLog(new ProcessLogEvent { Text = "Executable: " + request.Executable + "\nArguments: " + String.Join(" ", System.Linq.Enumerable.Select(request.Arguments, WindowsJobProcess.Quote)) + "\nWorkingDirectory: " + request.WorkingDirectory });
                     var result = await manager.RunAsync(request, cancellation.Token).ConfigureAwait(false);
-                    record.ExitCode = result.ExitCode; record.State = result.State;
+                    record.ForwardExitCode = result.ExitCode; record.ExitCode = result.ExitCode; record.State = result.State;
                     if (ioError != null) throw new IOException("运行日志保存失败：" + ioError);
                     if (record.State == ProcessRunState.Completed)
                     {
@@ -122,7 +123,15 @@ namespace PreProcess.Wpf.Services.Execution
                             throw new FileNotFoundException("后端运行请求记录不存在或不属于本次运行。");
                         record.ResultDirectory = outputDirectory;
                         record.BackendRequestPath = backendRequest;
-                        record.Message = prepareOnly ? "输入准备完成（未执行求解）。" : "正向计算完成。";
+                        if (prepareOnly) record.Message = "输入准备完成（未执行求解及后处理）。";
+                        else
+                        {
+                            onLog(new ProcessLogEvent { Text = "01 正向计算完成，开始调用 03 特征提取入口。" });
+                            await RunFeatureExtractionAsync(paths, record, timeoutSeconds, cancellation.Token, onLog).ConfigureAwait(false);
+                            if (ioError != null) throw new IOException("运行日志保存失败：" + ioError);
+                            record.Message = "正向计算及特征提取完成。";
+                            record.BackendStatus = "success";
+                        }
                     }
                     else record.Message = record.State == ProcessRunState.Cancelled ? "正向计算已停止。" : "正向计算失败，请查看警告日志。";
                     record.Diagnostic = result.Error;
@@ -131,7 +140,7 @@ namespace PreProcess.Wpf.Services.Execution
                 catch (Exception ex)
                 {
                     record.State = ProcessRunState.Failed;
-                    record.Message = "无法完成正向计算：" + ex.Message;
+                    record.Message = "无法完成正向计算或特征提取：" + ex.Message;
                     record.Diagnostic = ex.ToString();
                     onLog(new ProcessLogEvent { IsError = true, Text = ex.ToString() });
                 }
@@ -157,6 +166,65 @@ namespace PreProcess.Wpf.Services.Execution
             }
             return record;
         }
+
+        private async Task RunFeatureExtractionAsync(BackendPaths paths, ForwardRunRecord record, int timeoutSeconds,
+            CancellationToken token, Action<ProcessLogEvent> onLog)
+        {
+            token.ThrowIfCancellationRequested();
+            string runtimePackage = await Task.Run(() => RuntimePackage.Prepare(paths, token), token).ConfigureAwait(false);
+            record.RuntimePackage = runtimePackage;
+            var config = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(
+                File.ReadAllText(Path.Combine(runtimePackage, "config.json"), Encoding.UTF8));
+            var entries = (Dictionary<string, object>)config["standard_entries"];
+            string entry = Path.GetFullPath(Path.Combine(runtimePackage, (string)entries["03_similarity"]));
+            if (!BackendPathResolver.IsWithin(entry, runtimePackage) || !File.Exists(entry))
+                throw new FileNotFoundException("03 特征提取入口不存在或不在运行副本内。", entry);
+
+            string featureRoot = Path.Combine(record.ResultDirectory, "features");
+            if (Directory.Exists(featureRoot))
+                throw new IOException("本次正向结果目录中已存在 features，无法确定新的特征提取结果。");
+
+            var featurePaths = new BackendPaths { PackageRoot = runtimePackage, Python = paths.Python };
+            var request = MakeRequest(featurePaths);
+            request.Arguments.Add(entry);
+            request.Arguments.Add("--mode"); request.Arguments.Add("features");
+            request.Arguments.Add("--run-dir"); request.Arguments.Add(record.ResultDirectory);
+            request.Arguments.Add("--output-dir"); request.Arguments.Add(featureRoot);
+            request.Timeout = TimeSpan.FromSeconds(timeoutSeconds + 120.0);
+            onLog(new ProcessLogEvent { Text = "Executable: " + request.Executable + "\nArguments: " +
+                String.Join(" ", System.Linq.Enumerable.Select(request.Arguments, WindowsJobProcess.Quote)) +
+                "\nWorkingDirectory: " + request.WorkingDirectory });
+
+            ProcessRunResult feature = await manager.RunAsync(request, token).ConfigureAwait(false);
+            record.FeatureExitCode = feature.ExitCode;
+            record.ExitCode = feature.ExitCode;
+            record.State = feature.State;
+            if (feature.State == ProcessRunState.Cancelled)
+            {
+                token.ThrowIfCancellationRequested();
+                throw new OperationCanceledException("03 特征提取已停止。", token);
+            }
+            if (feature.State != ProcessRunState.Completed || feature.ExitCode != 0)
+                throw new InvalidOperationException("03 特征提取入口执行失败。" + (String.IsNullOrWhiteSpace(feature.Error) ? String.Empty : " " + feature.Error));
+
+            string[] directories = Directory.Exists(featureRoot) ? Directory.GetDirectories(featureRoot) : new string[0];
+            if (directories.Length != 1)
+                throw new InvalidDataException("03 特征提取没有生成唯一的运行目录。");
+            string featureDirectory = Path.GetFullPath(directories[0]);
+            if (!BackendPathResolver.IsWithin(featureDirectory, featureRoot))
+                throw new InvalidDataException("03 特征提取结果超出本次正向结果目录。");
+            string statusPath = Path.Combine(featureDirectory, "evaluation_status.json");
+            if (!File.Exists(statusPath)) throw new FileNotFoundException("03 特征提取完成标志不存在。", statusPath);
+            var status = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(statusPath, Encoding.UTF8));
+            string featureRunId = status["run_id"] as string;
+            if ((status["status"] as string) != "success" || (status["mode"] as string) != "features" ||
+                featureRunId != Path.GetFileName(featureDirectory))
+                throw new InvalidDataException("03 特征提取完成标志与本次运行不一致。");
+            record.FeatureRunId = featureRunId;
+            record.FeatureResultDirectory = featureDirectory;
+            onLog(new ProcessLogEvent { Text = "03 特征提取完成：" + featureDirectory });
+        }
+
         private static ProcessRunRequest MakeRequest(BackendPaths paths)
         {
             return new ProcessRunRequest { Executable = paths.Python, WorkingDirectory = paths.PackageRoot,

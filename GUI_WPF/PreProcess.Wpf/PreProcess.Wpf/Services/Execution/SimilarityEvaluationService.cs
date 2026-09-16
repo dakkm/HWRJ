@@ -6,7 +6,7 @@ namespace PreProcess.Wpf.Services.Execution
 {
     public sealed class SimilarityEvaluationService : ModuleExecutionService
     {
-        public Task<RunRecord> RunAsync(string reference, string candidate, string config = null, BackendPaths paths = null, CancellationToken token = default(CancellationToken))
+        public Task<RunRecord> RunAsync(string reference, string candidate, string config = null, BackendPaths paths = null, CancellationToken token = default(CancellationToken), string selectedTask = null)
         {
             return ExecuteAsync("03", paths, (package, submission, request, record) =>
             {
@@ -17,7 +17,7 @@ namespace PreProcess.Wpf.Services.Execution
                 record.RequestPath = Path.Combine(submission, "evaluation-reference.json");
                 WriteObject(record.RequestPath, new { reference_result = Path.GetFullPath(reference), candidate_result = Path.GetFullPath(candidate), evaluation_config = evaluation });
                 foreach (string arg in new[] { "--mode", "similarity", "--reference-run", Path.GetFullPath(reference), "--candidate-run", Path.GetFullPath(candidate), "--config", evaluation }) request.Arguments.Add(arg);
-            }, token);
+            }, token, null, selectedTask);
         }
         public static void CheckDirectory(string path)
         {
