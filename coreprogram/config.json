@@ -7,7 +7,7 @@
   "point_image_scene_template": "02-智能预测/03-模型文件/point_image_fixed_scene_runtime.csv",
   "notes": {
     "default_scene_template": "已废止旧模板补全机制。clean_case_template.dat 只负责序列化，不提供业务默认值。",
-    "point_image_scene_template": "Internal frozen model-side feature template, not a user input file. It has been relocated from 02/01-输入文件 to 02/03-模型文件.",
+    "point_image_scene_template": "The frozen model scene template is also the software default scene.",
     "source_case_id": "Retained only as target/result provenance metadata. It no longer selects a per-case input.dat template.",
     "user_parameter_contract": "旧三参数开放合同已废止。01统一入口采用完整 forward-request-v1 六分区参数合同。",
     "clean_package": "Only current runtime dependencies, standardized inputs, model resources, interface docs and minimal examples are retained. Legacy Optuna/Top-K/screening scripts, duplicate target curves and historical batch outputs are removed.",
@@ -15,7 +15,7 @@
     "forward_output": "01 formal runtime outputs are written only under 01-正向仿真/03-输出文件/runs/run_xxx/output. Core files include temperature_history.csv, infrared_response_history.csv (including radiant_intensity_W_sr), trajectory_history.csv, frame_summary.csv, solver_status.txt and run_metadata.json.",
     "rho_ir_policy": "rho_ir 现为 TARGET_PHYSICS 中的显式业务输入，不再由统一入口根据 eps_ir 自动推导。",
     "surrogate_input": "02 no longer defines a three-parameter user request. The formal user input is the same complete forward-request-v1 JSON used by module 01; surrogate_standard_input.py performs model-applicability checks and feature extraction.",
-    "surrogate_applicability": "Current frozen models still support the original fixed scene and global q_int/eps_ir/alpha_s variation only. Unsupported changes in the complete request are rejected rather than silently ignored."
+    "surrogate_applicability": "The software default scene and frozen model reference scene are identical; global q_int/eps_ir/alpha_s remain the supported learned variations."
   },
   "forward_runtime_root": "01-正向仿真/03-输出文件/runs",
   "surrogate_runtime_root": "02-智能预测/04-输出文件/runs",

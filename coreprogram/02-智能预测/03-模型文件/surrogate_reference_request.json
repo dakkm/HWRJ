@@ -45,7 +45,11 @@
     ],
     "COMPANION_TYPE": "SPHERE",
     "ATTITUDE_MOTION_TYPE": "NONE",
-    "MICRO_MOTION_PARAMS": [0.0, 0.0, 0.0],
+    "MICRO_MOTION_PARAMS": [
+      0.0,
+      0.0,
+      0.0
+    ],
     "SIMILARITY_LEVEL": "DATASET_BASIC"
   },
   "OBSERVATION": {

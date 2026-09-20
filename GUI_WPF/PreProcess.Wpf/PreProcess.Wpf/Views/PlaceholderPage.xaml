@@ -8,8 +8,8 @@
    <TextBlock Grid.Row="1" Text="{Binding Description}" Margin="0,12,0,24" Foreground="#586779" TextWrapping="Wrap"/>
    <Border Grid.Row="2" Background="#F5F8FC" BorderBrush="#D9E2EF" BorderThickness="1" CornerRadius="6" Padding="24">
     <StackPanel VerticalAlignment="Center">
-     <TextBlock Text="内容区域" FontSize="18" HorizontalAlignment="Center"/>
-     <TextBlock Text="此页面将在后续阶段逐步完善。" Margin="0,12,0,0" Foreground="#64748B" TextAlignment="Center" TextWrapping="Wrap"/>
+     <TextBlock Text="请选择具体功能" FontSize="18" HorizontalAlignment="Center"/>
+     <TextBlock Text="请从左侧导航中选择需要配置、运行或查看的页面。" Margin="0,12,0,0" Foreground="#64748B" TextAlignment="Center" TextWrapping="Wrap"/>
     </StackPanel>
    </Border>
   </Grid>

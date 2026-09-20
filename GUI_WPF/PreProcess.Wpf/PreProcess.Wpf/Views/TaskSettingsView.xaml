@@ -26,7 +26,7 @@
         <TextBlock Text="目标数量" TextWrapping="Wrap" />
         <TextBox Margin="0,4,0,0" Padding="6" Text="{Binding Editor.Task.Settings.TargetCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="目标数量" />
       </StackPanel>
-      <TextBlock Text="减少目标数量会移除末尾目标及其独立设置。编辑器上限为10000个目标。红框表示输入无效，悬停可查看原因。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
+      <TextBlock Text="仿真时间须大于 0 且不超过 1000 s，智能预测和红外场景构建均直接读取此值。减少目标数量会移除末尾目标及其独立设置；编辑器最多支持 10000 个目标。红框表示输入无效，悬停可查看原因。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,8" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

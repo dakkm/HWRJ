@@ -9,8 +9,8 @@ $requirements = Join-Path $InstallRoot 'coreprogram\requirements-runtime.txt'
 $venv = Join-Path $InstallRoot '.python-runtime'
 if (-not (Test-Path $requirements)) { throw "Missing requirements file: $requirements" }
 $python = Get-Command $PythonExecutable -ErrorAction SilentlyContinue
-if (-not $python) { throw "Python 3.10 x64 was not found. Install it and add it to PATH, or pass -PythonExecutable with its full path." }
-& $python.Source -c "import struct,sys; assert sys.version_info[:2] == (3,10), 'Python 3.10 required'; assert struct.calcsize('P') * 8 == 64, '64-bit Python required'; print(sys.version)"
+if (-not $python) { throw "Python 3.13 x64 was not found. Install it and add it to PATH, or pass -PythonExecutable with its full path." }
+& $python.Source -c "import struct,sys; assert sys.version_info[:2] == (3,13), 'Python 3.13 required'; assert struct.calcsize('P') * 8 == 64, '64-bit Python required'; print(sys.version)"
 if ($LASTEXITCODE -ne 0) { throw 'Python version check failed.' }
 if (-not (Test-Path (Join-Path $venv 'Scripts\python.exe'))) {
     & $python.Source -m venv $venv

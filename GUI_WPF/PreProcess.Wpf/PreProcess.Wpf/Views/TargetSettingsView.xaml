@@ -7,7 +7,15 @@
       <GroupBox Header="弹头相似度等级" Margin="0,10,0,0" Padding="10" IsEnabled="{Binding Editor.Execution.CanEdit}">
         <StackPanel>
           <TextBlock Text="相似度（%）" />
-          <TextBox Padding="6" Margin="0,4,0,0" Text="{Binding Editor.Task.Settings.SimilarityIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" AutomationProperties.Name="弹头相似度等级 (%)" />
+          <TextBox x:Name="SimilarityTextBox" Padding="6" Margin="0,4,0,0" KeyDown="SimilarityTextBox_KeyDown" AutomationProperties.Name="弹头相似度等级 (%)">
+            <TextBox.Text>
+              <Binding Path="Editor.Task.Settings.SimilarityIndex" Mode="TwoWay" UpdateSourceTrigger="LostFocus">
+                <Binding.ValidationRules>
+                  <views:SimilarityPercentageValidationRule />
+                </Binding.ValidationRules>
+              </Binding>
+            </TextBox.Text>
+          </TextBox>
           <TextBlock Text="允许范围：50%～100%；默认值为90%。该值同时写入正向计算输入，并用于红外场景构建的候选结果验收。" TextWrapping="Wrap" Foreground="#64748B" Margin="0,4" />
         </StackPanel>
       </GroupBox>
