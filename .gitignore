@@ -57,3 +57,13 @@ GUI_WPF/Verification/
 
 # Local test workspace
 .tools/
+# Generated runtime outputs
+coreprogram/**/输出文件/runs/
+coreprogram/**/输出文件/reference_runs/
+
+# Installer prerequisites
+installer/prerequisites/*.exe
+
+# Backup / duplicate files
+*.bak
+* - 副本.*
