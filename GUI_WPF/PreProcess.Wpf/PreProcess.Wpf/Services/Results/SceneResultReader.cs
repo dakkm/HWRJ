@@ -40,7 +40,11 @@ namespace PreProcess.Wpf.Services.Results
             // Keep the detailed backend tables available, but make the concise
             // similarity result the first (default) table shown by the GUI.
             // 记录本阶段的状态信息，供界面反馈和问题诊断使用。
-            AddTable(model, BuildCandidateSimilarityTable(searchLog));
+            // The requested count is the number of accepted candidates. The
+            // search log also contains candidates that were evaluated and
+            // rejected, so use candidate_parameters.csv as the acceptance set
+            // when building the concise result table.
+            AddTable(model, BuildCandidateSimilarityTable(searchLog, parameters));
             AddTable(model, parameters);
             // 调用对应组件完成当前步骤，并保留产生的处理结果。
             AddTable(model, temperature);
@@ -70,7 +74,7 @@ namespace PreProcess.Wpf.Services.Results
         }
 
         // 执行该成员负责的业务步骤，并向调用方提供一致的处理结果。
-        private static ResultTable BuildCandidateSimilarityTable(ResultTable source)
+        private static ResultTable BuildCandidateSimilarityTable(ResultTable source, ResultTable acceptedParameters)
         {
             if (source == null) return null;
             var table = new ResultTable { Name = "候选相似度结果", SourcePath = source.SourcePath };
@@ -82,7 +86,19 @@ namespace PreProcess.Wpf.Services.Results
             AddDisplayColumn(table, "forward_elapsed_seconds", "单次复核耗时");
 
             // 遍历当前数据集合，逐项完成必要的转换或状态更新。
-            foreach (ResultRow sourceRow in source.Rows.Where(IsRelevantCandidate))
+            var acceptedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (acceptedParameters != null)
+            {
+                foreach (ResultRow acceptedRow in acceptedParameters.Rows)
+                {
+                    string id = Convert.ToString(Value(acceptedRow, "candidate_id"), CultureInfo.InvariantCulture);
+                    if (!String.IsNullOrWhiteSpace(id)) acceptedIds.Add(id);
+                }
+            }
+
+            bool hasAcceptedParameters = acceptedParameters != null && acceptedParameters.Rows.Count > 0;
+            foreach (ResultRow sourceRow in source.Rows.Where(row =>
+                IsRelevantCandidate(row) && (!hasAcceptedParameters || acceptedIds.Contains(Convert.ToString(Value(row, "candidate_id"), CultureInfo.InvariantCulture)))))
             {
                 var row = new ResultRow();
                 // 更新当前流程使用的数据，为下一处理步骤做好准备。

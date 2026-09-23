@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
+import joblib
 # 导入当前模块依赖的标准能力或领域组件。
 import sys
 import time
@@ -49,6 +49,9 @@ CONFIG_PATH = PACKAGE_ROOT / "config.json"
 
 TIME_STEP_S = 10.0
 MODEL_PARAMETER_DOMAIN = standard_input.MODEL_PARAMETER_DOMAIN
+M2_EXPECTED_SHA = "50460d31ed5117fb10f89482ed8439f07998afa9f7ea32d1432df2da27813998"
+EXPECTED_FEATURES = ["q_int", "emissivity_ir", "absorptivity_solar", "time_s", "q_int_times_absorptivity_solar", "q_int_div_emissivity_ir", "is_initial_condition"]
+TIMES = np.arange(0.0, 1000.0 + 10.0, 10.0, dtype=float)
 
 
 # 定义 sha256 处理过程，集中封装该步骤的输入、输出与异常边界。
@@ -108,14 +111,14 @@ def _to_float(name: str, value: Any) -> float:
 
 
 # 定义 validate_parameters 处理过程，集中封装该步骤的输入、输出与异常边界。
-def validate_parameters(params: dict[str, Any]) -> dict[str, float]:
+def validate_parameters(params: dict[str, Any], strict: bool = True) -> dict[str, float]:
     clean: dict[str, float] = {}
     for name, rule in MODEL_PARAMETER_DOMAIN.items():
         if name not in params:
             # 检测到无效状态后立即报错，防止异常数据继续传播。
             raise ValueError(f"缺少必需参数：{name}")
         value = _to_float(name, params[name])
-        if not (float(rule["min"]) <= value <= float(rule["max"])):
+        if strict and not (float(rule["min"]) <= value <= float(rule["max"])):
             # 检测到无效状态后立即报错，防止异常数据继续传播。
             raise ValueError(
                 f"参数 {name} 超出当前代理模型训练/验证适用域：{value}，"
@@ -152,11 +155,57 @@ def _load_forward_runner() -> Any:
 
 
 def predict_temperature(
-    request: dict[str, Any],
     params: dict[str, float],
     run_dir: Path,
     duration_s: float,
 ) -> dict[str, Any]:
+    cfg = load_config()
+    model_path = package_path(cfg.get("temperature_model", "02-智能预测/03-模型文件/formal_configured_target_temperature_extratrees.joblib"))
+    if not model_path.exists():
+        raise FileNotFoundError(f"M2温度模型不存在：{model_path}")
+    actual_sha = sha256(model_path)
+    expected_sha = str(cfg.get("temperature_model_sha256", M2_EXPECTED_SHA)).strip().lower()
+    if expected_sha and actual_sha.lower() != expected_sha:
+        raise RuntimeError(f"M2温度模型 SHA256 不匹配：actual={actual_sha}, expected={expected_sha}")
+    payload = joblib.load(model_path)
+    model = payload["model"]
+    compatibility_patch = False
+    if hasattr(model, "named_steps") and "impute" in model.named_steps:
+        imputer = model.named_steps["impute"]
+        if not hasattr(imputer, "_fill_dtype") and hasattr(imputer, "statistics_"):
+            imputer._fill_dtype = imputer.statistics_.dtype
+            compatibility_patch = True
+    features = list(payload.get("features", []))
+    if features != EXPECTED_FEATURES:
+        raise RuntimeError(f"M2特征合同不匹配：{features}")
+    q, e, a = params["q_int"], params["emissivity_ir"], params["absorptivity_solar"]
+    times = prediction_times(float(duration_s))
+    x = pd.DataFrame({
+        "q_int": np.full(len(times), q), "emissivity_ir": np.full(len(times), e),
+        "absorptivity_solar": np.full(len(times), a), "time_s": times,
+        "q_int_times_absorptivity_solar": np.full(len(times), q * a),
+        "q_int_div_emissivity_ir": np.full(len(times), q / e),
+        "is_initial_condition": (times == 0.0).astype(int),
+    })
+    t0 = time.perf_counter()
+    y = np.asarray(model.predict(x[features]), dtype=float)
+    infer_seconds = time.perf_counter() - t0
+    if y.shape != times.shape or not np.isfinite(y).all():
+        raise RuntimeError("M2输出与请求时间轴长度不一致或包含无效温度值。")
+    y[0] = 300.0
+    out_path = run_dir / "temperature_prediction.csv"
+    pd.DataFrame({"time_s": times, "temperature_prediction_K": y}).to_csv(out_path, index=False, encoding="utf-8-sig")
+    return {
+        "temperature_prediction_csv": str(out_path), "temperature_point_count": int(len(times)),
+        "temperature_initial_K": float(y[0]), "temperature_final_K": float(y[-1]),
+        "temperature_min_K": float(y.min()), "temperature_max_K": float(y.max()),
+        "temperature_inference_seconds": infer_seconds, "temperature_model": str(model_path),
+        "temperature_model_sha256": actual_sha,
+        "temperature_target_definition": payload.get("physical_definition", "configured_target_sphere_temperature"),
+        "temperature_target_sphere_id": payload.get("target_sphere_id", 1),
+        "sklearn_simpleimputer_compatibility_patch_applied": compatibility_patch,
+    }
+
     """使用正式正向求解器生成可信温度，再转换为智能预测页的十秒采样格式。
 
     原 ExtraTrees 温度模型在训练域边界会把 300 K 初温错误预测为约 360 K，
@@ -273,7 +322,8 @@ def predict_point_image(params: dict[str, float], run_dir: Path, duration_s: flo
     scalers = json.loads((model_dir / "scalers.json").read_text(encoding="utf-8"))
     emit_progress(state="loading_point_image_model")
     # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
-    model = stage_f.load_forward_model(model_dir / "best_model.keras")
+    model_path = model_dir / getattr(stage_f, "MODEL_FILE", "best_model_win7.h5")
+    model = stage_f.load_forward_model(model_path)
 
     rows = state.copy()
     for k, v in params.items():
@@ -304,6 +354,19 @@ def predict_point_image(params: dict[str, float], run_dir: Path, duration_s: flo
     base["pred_spot_power"] = 10 ** base["pred_log_spot_power"]
     # 记录当前阶段的状态，便于调用方反馈进度并定位问题。
     base["pred_spot_intensity"] = 10 ** base["pred_log_spot_intensity"]
+    # The historical spot_intensity target is received power [W], despite its
+    # name. Physical grid dimensions come from the frozen scene template.
+    grid_nx = base["input_GRID_NX"].to_numpy(float)
+    grid_ny = base["input_GRID_NY"].to_numpy(float)
+    plane_size = base["input_SPOT_PLANE_SIZE"].to_numpy(float)
+    if (not np.isfinite(grid_nx).all() or not np.isfinite(grid_ny).all()
+            or not np.isfinite(plane_size).all() or (grid_nx <= 0).any()
+            or (grid_ny <= 0).any() or (plane_size <= 0).any()
+            or (grid_nx != np.floor(grid_nx)).any() or (grid_ny != np.floor(grid_ny)).any()):
+        raise ValueError("点图像模板的物理网格或像面尺寸无效。")
+    base["physical_pixel_area_m2"] = (plane_size / grid_nx) * (plane_size / grid_ny)
+    base["pred_spot_power_W"] = np.maximum(base["pred_spot_intensity"].to_numpy(float) - 1e-18, 0.0)
+    base["pred_detector_irradiance_W_m2"] = base["pred_spot_power_W"] / base["physical_pixel_area_m2"]
     px, py, valid = stage_f.pixel(
         base["pred_screen_x"].to_numpy(),
         # 执行数组或表格数据运算，为后续数值处理准备结果。
@@ -325,9 +388,10 @@ def predict_point_image(params: dict[str, float], run_dir: Path, duration_s: flo
     # 遍历当前数据或迭代计算，逐项更新处理结果。
     for frame_id, fg in base.groupby("frame_id", sort=True):
         mask = fg["in_bounds"].to_numpy(bool)
-        power = fg["pred_spot_power"].to_numpy(float)
+        power = fg["pred_spot_power_W"].to_numpy(float)
         # 执行数组或表格数据运算，为后续数值处理准备结果。
         intensity = fg["pred_spot_intensity"].to_numpy(float)
+        irradiance = fg["pred_detector_irradiance_W_m2"].to_numpy(float)
         w = power[mask]
         xx = fg["pixel_x"].to_numpy()[mask]
         yy = fg["pixel_y"].to_numpy()[mask]
@@ -343,6 +407,7 @@ def predict_point_image(params: dict[str, float], run_dir: Path, duration_s: flo
                 # 将外部值转换为内部格式，保证后续计算使用一致的数据类型。
                 "peak_power": float(w.max()) if len(w) else 0.0,
                 "total_intensity": float(intensity[mask].sum()),
+                "total_irradiance_W_m2": float(irradiance[mask].sum()),
                 "centroid_x_pixel": float(np.average(xx, weights=w)) if w.sum() > 0 else None,
                 # 执行数组或表格数据运算，为后续数值处理准备结果。
                 "centroid_y_pixel": float(np.average(yy, weights=w)) if w.sum() > 0 else None,
@@ -355,16 +420,21 @@ def predict_point_image(params: dict[str, float], run_dir: Path, duration_s: flo
 
     reconstruction = {
         # 继续执行当前业务步骤，保持处理上下文与数据状态一致。
-        "grid": "256x256",
+        "grid": f"{int(grid_nx[0])}x{int(grid_ny[0])}",
+        "physical_grid_nx": int(grid_nx[0]),
+        "physical_grid_ny": int(grid_ny[0]),
+        "spot_plane_size_m": float(plane_size[0]),
+        "physical_pixel_area_m2": float(base["physical_pixel_area_m2"].iloc[0]),
         "pixel_index": "1-based",
         "same_pixel_policy": "sum",
         # 记录当前阶段的状态，便于调用方反馈进度并定位问题。
-        "inverse_log_policy": "10**log_value",
+        "inverse_log_policy": "max(10**pred_log_spot_intensity-1e-18,0) [W]",
+        "irradiance_policy": "pred_spot_power_W / physical_pixel_area_m2 [W/m2]",
         "psf": "none",
         "interpolation": "none",
         "smoothing": "none",
         # 继续执行当前业务步骤，保持处理上下文与数据状态一致。
-        "gui_reconstruction": "按 pixel_x/pixel_y 将 pred_spot_power 或 pred_spot_intensity 累加到对应像元。",
+        "gui_reconstruction": "按 pixel_x/pixel_y 将 pred_detector_irradiance_W_m2 累加到对应像元。",
     }
     reconstruction_path = run_dir / "point_image_reconstruction_contract.json"
     # 读取或写入约定的数据文件，并维护统一的路径规则。
@@ -379,7 +449,13 @@ def predict_point_image(params: dict[str, float], run_dir: Path, duration_s: flo
         # 继续执行当前业务步骤，保持处理上下文与数据状态一致。
         "point_image_inference_seconds": infer_seconds,
         "point_image_template": str(template_path),
-        "point_image_model": str(model_dir / "best_model.keras"),
+        "point_image_model": str(model_path),
+        "point_image_quantity_contract": {
+            "pred_spot_power_W": "max(10**pred_log_spot_intensity-1e-18,0)",
+            "pred_detector_irradiance_W_m2": "pred_spot_power_W / physical_pixel_area_m2",
+            "physical_pixel_area_m2": "(input_SPOT_PLANE_SIZE/input_GRID_NX)*(input_SPOT_PLANE_SIZE/input_GRID_NY)",
+            "legacy_pred_spot_intensity": "deprecated alias for received power W",
+        },
         "point_image_contract": contract,
     # 继续执行当前业务步骤，保持处理上下文与数据状态一致。
     }
@@ -394,10 +470,37 @@ def run_surrogate_prediction(
 ) -> tuple[int, dict[str, Any]]:
     # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
     start = time.time()
-    normalized = standard_input.standardize_surrogate_request(request)
+    applicability_warning = None
+    try:
+        normalized = standard_input.standardize_surrogate_request(request)
+    except standard_input.SurrogateApplicabilityError as exc:
+        # Keep the user's forward-request intact. Out-of-domain inputs are
+        # reported, not silently replaced with the reference scene.
+        forward = standard_input._load_forward_module()
+        clean = forward.validate_request(request)
+        first = sorted(clean["TARGET_PHYSICS"], key=lambda row: row["id"])[0]
+        normalized = {
+            "input_contract": "forward-request-v1",
+            "surrogate_runtime_contract": "surrogate-standard-input-v1",
+            "full_request": clean,
+            "model_parameters": {
+                "q_int": float(first["q_int"]),
+                "emissivity_ir": float(first["eps_ir"]),
+                "absorptivity_solar": float(first["alpha_s"]),
+            },
+            "model_parameter_domain": standard_input.MODEL_PARAMETER_DOMAIN,
+            "applicability": {
+                "status": "warning",
+                "message": str(exc),
+                "task_duration_s": float(clean["CASE"]["TOTAL_TIME"]),
+                "maximum_prediction_time_s": standard_input.MAX_PREDICTION_TIME_S,
+                "reference_request": str(standard_input.FORWARD_REFERENCE),
+            },
+        }
+        applicability_warning = str(exc)
     clean_request = normalized["full_request"]
     # 校验输入数据及运行前提，提前拒绝不符合契约的参数。
-    model_params = validate_parameters(normalized["model_parameters"])
+    model_params = validate_parameters(normalized["model_parameters"], strict=applicability_warning is None)
     duration_s = float(clean_request["CASE"]["TOTAL_TIME"])
 
     if mode not in {"temperature", "point-image", "both"}:
@@ -439,14 +542,16 @@ def run_surrogate_prediction(
     # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
     emit_progress(state="running", run_id=run_id, mode=mode)
 
+    if applicability_warning:
+        emit_progress(state="applicability_warning", run_id=run_id, message=applicability_warning)
+
     result_path = run_dir / "prediction_summary.json"
     try:
         # 检查当前条件，仅在满足约束时执行对应分支。
         if mode in {"temperature", "both"}:
-            result.update(predict_temperature(clean_request, model_params, run_dir, duration_s))
+            result.update(predict_temperature(model_params, run_dir, duration_s))
             emit_progress(state="temperature_completed", run_id=run_id)
         if mode in {"point-image", "both"}:
-            # 把本次处理结果加入集合，供后续汇总或输出使用。
             result.update(predict_point_image(model_params, run_dir, duration_s))
             emit_progress(state="point_image_completed", run_id=run_id)
 

@@ -61,8 +61,35 @@ namespace PreProcess.Wpf.ViewModels
                 if (String.IsNullOrWhiteSpace(path) || !File.Exists(path)) path = defaultPath;
                 var files = new TaskFileService();
                 // 处理文件系统路径及数据，并在使用前确认目标有效。
-                TaskModel selected = File.Exists(path) ? files.Load(path) : new TaskModel();
-                if (!File.Exists(path)) files.Save(selected, defaultPath);
+                // The startup template is generated from the packaged surrogate
+                // reference scene. Rebuild it even when an older template exists,
+                // otherwise module 02 can receive a scene outside its contract.
+                TaskModel selected;
+                if (String.Equals(Path.GetFullPath(path), Path.GetFullPath(defaultPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    string package = new BackendPathResolver().Resolve().PackageRoot;
+                    selected = ReferenceTaskLoader.Load(package);
+                    files.Save(selected, defaultPath);
+                }
+                else
+                {
+                    selected = files.Load(path);
+                    // Older releases persisted the demo task as 001.task.json
+                    // with targets laid out at x=0..15 and zero velocity. Treat
+                    // that specific legacy template as the startup template so
+                    // it cannot mask the packaged intelligent-prediction scene.
+                    if (LooksLikeLegacyDefaultScene(selected))
+                    {
+                        double duration = selected.Settings.Duration;
+                        string package = new BackendPathResolver().Resolve().PackageRoot;
+                        selected = ReferenceTaskLoader.Load(package);
+                        // Scene migration must not silently change the user's
+                        // simulation horizon (e.g. 200 s -> reference 1000 s).
+                        selected.Settings.Duration = duration;
+                        files.Save(selected, defaultPath);
+                        path = defaultPath;
+                    }
+                }
                 // 校验当前条件，仅在满足业务约束时进入该处理分支。
                 if (!File.Exists(path)) path = defaultPath;
                 string taskResults = TaskDirectoryManager.SelectTask(runtimeRoot, path, selected.Settings.Metadata.Name);
@@ -79,6 +106,22 @@ namespace PreProcess.Wpf.ViewModels
                 Reset(); CurrentTaskPath = null; ResultTaskDirectory = null;
                 Message = "默认任务加载失败，已使用内存默认参数：" + ex.Message;
             }
+        }
+
+        private static bool LooksLikeLegacyDefaultScene(TaskModel value)
+        {
+            if (value == null || value.IndividualTargets.Count < 2 ||
+                !String.Equals(value.Settings.Metadata.Name, "001", StringComparison.OrdinalIgnoreCase)) return false;
+            for (int i = 0; i < value.IndividualTargets.Count; i++)
+            {
+                var motion = value.IndividualTargets[i].Motion;
+                if (Math.Abs(motion.Position.X - i) > 1e-9 ||
+                    Math.Abs(motion.Position.Y) > 1e-9 || Math.Abs(motion.Position.Z) > 1e-9 ||
+                    Math.Abs(motion.Velocity.X) > 1e-9 || Math.Abs(motion.Velocity.Y) > 1e-9 ||
+                    Math.Abs(motion.Velocity.Z) > 1e-9 || Math.Abs(motion.ReleaseTime) > 1e-9)
+                    return false;
+            }
+            return true;
         }
         private void OpenTask()
         {

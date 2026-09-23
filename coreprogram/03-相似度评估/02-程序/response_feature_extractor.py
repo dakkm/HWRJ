@@ -130,7 +130,17 @@ def _temperature_table(run_dir: Path, cfg: dict[str, Any]) -> pd.DataFrame:
     path = run_dir / "temperature_history.csv"
     if not path.is_file():
         # 检测到无效状态后立即报错，防止异常数据继续传播。
-        raise FeatureExtractionError(f"Missing formal 01 output: {path}")
+        prediction = run_dir / "temperature_prediction.csv"
+        if prediction.is_file():
+            df = _read_csv_compatible(prediction)
+            _require_columns(df, ["time_s", "temperature_prediction_K"], "temperature_prediction.csv")
+            df = _numeric(df, ["time_s", "temperature_prediction_K"], "temperature_prediction.csv")
+            df = df[["time_s", "temperature_prediction_K"]].sort_values("time_s", kind="mergesort")
+            t = df["time_s"].to_numpy(float)
+            _strict_time_axis(t, "temperature_prediction.csv")
+            T = df["temperature_prediction_K"].to_numpy(float)
+            return pd.DataFrame({"time_s": t, "temperature_object_id": int(cfg["temperature"]["object_id"]), "temperature_K": T, "temperature_rate_K_s": finite_difference(t, T)})
+        raise FeatureExtractionError(f"Missing temperature output: {path} or {prediction}")
     df = _read_csv_compatible(path)
     _require_columns(df, ["time_s"], "temperature_history.csv")
     object_id = int(cfg["temperature"]["object_id"])
@@ -163,7 +173,16 @@ def _infrared_table(run_dir: Path) -> pd.DataFrame:
     path = run_dir / "infrared_response_history.csv"
     # 检查当前条件，仅在满足约束时执行对应分支。
     if not path.is_file():
-        raise FeatureExtractionError(f"Missing formal 01 output: {path}")
+        token_path = run_dir / "point_token_predictions.csv.gz"
+        if token_path.is_file():
+            token = _read_csv_compatible(token_path)
+            needed = ["frame_id", "sphere_id", "time_s", "sphere_released_flag", "input_GRID_NX", "input_GRID_NY", "input_SPOT_PLANE_SIZE", "pred_screen_x", "pred_screen_y", "pred_spot_power", "in_bounds"]
+            _require_columns(token, needed, "point_token_predictions.csv.gz")
+            token = _numeric(token, [c for c in needed if c != "in_bounds"], "point_token_predictions.csv.gz")
+            area = (token["input_SPOT_PLANE_SIZE"] / token["input_GRID_NX"]) * (token["input_SPOT_PLANE_SIZE"] / token["input_GRID_NY"])
+            power = token["pred_spot_power"].clip(lower=0.0)
+            return pd.DataFrame({"case_id": "prediction", "frame_id": token["frame_id"], "time_s": token["time_s"], "object_id": token["sphere_id"], "active_flag": 1.0, "released_flag": token["sphere_released_flag"], "radiation_power_W": power, "radiant_intensity_W_sr": power, "detector_received_power_W": power, "detector_irradiance_W_m2": power / area, "screen_x_m": token["pred_screen_x"], "screen_y_m": token["pred_screen_y"], "in_screen_flag": token["in_bounds"].astype(bool).astype(float), "range_to_detector_m": 1.0}).sort_values(["object_id", "time_s"], kind="mergesort").reset_index(drop=True)
+        raise FeatureExtractionError(f"Missing infrared output: {path} or {token_path}")
     df = _read_csv_compatible(path)
     required = [
         # 继续执行当前业务步骤，保持处理上下文与数据状态一致。

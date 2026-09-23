@@ -13,7 +13,7 @@ namespace PreProcess.Wpf.Services.Execution
         {
             if (String.IsNullOrWhiteSpace(runtimeRoot)) throw new ArgumentException("运行根目录不能为空。", "runtimeRoot");
             // 处理文件系统路径及数据，并在使用前确认目标有效。
-            string tasksRoot = Path.Combine(Path.GetFullPath(runtimeRoot), "results");
+            string tasksRoot = Path.GetFullPath(runtimeRoot);
             Directory.CreateDirectory(tasksRoot);
             // 处理文件系统路径及数据，并在使用前确认目标有效。
             string identity = String.IsNullOrWhiteSpace(taskFile) ? taskName ?? "default" : Path.GetFullPath(taskFile);
@@ -37,7 +37,7 @@ namespace PreProcess.Wpf.Services.Execution
         public static string Create(string runtimeRoot, string module, string selectedTask = null)
         {
             // 处理文件系统路径及数据，并在使用前确认目标有效。
-            string tasksRoot = Path.Combine(Path.GetFullPath(runtimeRoot), "results");
+            string tasksRoot = Path.GetFullPath(runtimeRoot);
             Directory.CreateDirectory(tasksRoot);
             // 更新当前流程使用的数据，为下一处理步骤做好准备。
             string taskDirectory = selectedTask;
@@ -48,7 +48,7 @@ namespace PreProcess.Wpf.Services.Execution
                 // 说明当前文件承载的类型职责，便于维护者快速定位功能边界。
                 Directory.CreateDirectory(taskDirectory);
             }
-            if (!BackendPathResolver.IsWithin(taskDirectory, tasksRoot)) throw new ArgumentException("任务结果目录必须位于 output/results 内。", "selectedTask");
+            if (!BackendPathResolver.IsWithin(taskDirectory, tasksRoot)) throw new ArgumentException("任务结果目录必须位于 output 内。", "selectedTask");
             // 更新当前流程使用的数据，为下一处理步骤做好准备。
             string moduleCode = ModuleCode(module);
             for (int index = 1; index <= 999999; index++)

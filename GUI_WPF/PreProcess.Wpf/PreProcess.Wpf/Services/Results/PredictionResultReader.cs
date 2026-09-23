@@ -54,7 +54,7 @@ namespace PreProcess.Wpf.Services.Results
                 AddJsonSummary(model.Summary, contract, "reconstruction.");
                 result.InfraredResponses.Add(model);
                 // 更新当前流程使用的数据，为下一处理步骤做好准备。
-                PointImageResult image = PointImageBuilder.FromForward(display);
+                PointImageResult image = PointImageBuilder.FromPrediction(tokens);
                 if (image != null)
                 {
                     // 更新当前流程使用的数据，为下一处理步骤做好准备。
@@ -129,8 +129,10 @@ namespace PreProcess.Wpf.Services.Results
                 row.Values["radiation_power_W"] = null;
                 row.Values["radiant_intensity_W_sr"] = null;
                 // 更新当前流程使用的数据，为下一处理步骤做好准备。
-                row.Values["detector_received_power_W"] = Value(sourceRow, "pred_spot_power");
-                row.Values["detector_irradiance_W_m2"] = Value(sourceRow, "pred_spot_intensity");
+                // Older saved runs lack the explicit physical columns. Reconstruct
+                // them from their logged target and frozen per-token grid metadata.
+                row.Values["detector_received_power_W"] = PointImageBuilder.PredictionPower(sourceRow);
+                row.Values["detector_irradiance_W_m2"] = PointImageBuilder.PredictionIrradiance(sourceRow);
                 // 更新当前流程使用的数据，为下一处理步骤做好准备。
                 row.Values["screen_x_m"] = Value(sourceRow, "pred_screen_x");
                 row.Values["screen_y_m"] = Value(sourceRow, "pred_screen_y");
@@ -148,6 +150,7 @@ namespace PreProcess.Wpf.Services.Results
             // 将当前结果加入集合，供后续汇总或界面展示。
             table.Columns.Add(new ResultColumn { Key = key, DisplayName = key, Unit = unit });
         }
+
 
         private static object Value(ResultRow row, string key)
         {

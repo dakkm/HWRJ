@@ -1,0 +1,26 @@
+{
+  "format": "tensorflow_saved_model",
+  "source_model_sha256": "a4951ca7f53d01145942a59a9c38c89444498fed576dcd12b1e1fcec182632e8",
+  "files": [
+    {
+      "path": "fingerprint.pb",
+      "size": 96,
+      "sha256": "f408d33d657e4e501bc0b74fb22918c0a4ff62bde65171e2d098b0be43887245"
+    },
+    {
+      "path": "saved_model.pb",
+      "size": 667581,
+      "sha256": "ae64161985b8e6051669348d2da4a0edd144896a5f20b2ba020fe9546515f87f"
+    },
+    {
+      "path": "variables/variables.data-00000-of-00001",
+      "size": 3223100,
+      "sha256": "c068426729d36319893cabb6cf1f1c8b150953894412ee3a61e1e1b97515c362"
+    },
+    {
+      "path": "variables/variables.index",
+      "size": 4862,
+      "sha256": "eb99471a1e449333f673fbf457f904a238712def246aa4bd3040abd41cc437fa"
+    }
+  ]
+}

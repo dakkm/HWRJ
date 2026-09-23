@@ -218,7 +218,7 @@ namespace PreProcess.Wpf.ViewModels
                 current = FindLatestForwardOutput(editor.ResultTaskDirectory);
             using (var dialog = new System.Windows.Forms.FolderBrowserDialog
             {
-                Description = reference ? "选择参考正向计算的 output 目录" : "选择候选正向计算的 output 目录",
+                Description = reference ? "选择参考正向计算或智能预测结果目录" : "选择候选正向计算或智能预测结果目录",
                 ShowNewFolderButton = false,
                 // 更新当前流程使用的数据，为下一处理步骤做好准备。
                 SelectedPath = current ?? String.Empty
@@ -251,10 +251,11 @@ namespace PreProcess.Wpf.ViewModels
             try
             {
                 // 处理文件系统路径及数据，并在使用前确认目标有效。
-                string latest = Directory.GetDirectories(taskDirectory, "output", SearchOption.AllDirectories)
-                    .Where(path => File.Exists(Path.Combine(path, "temperature_history.csv"))
-                        // 处理文件系统路径及数据，并在使用前确认目标有效。
+                string latest = Directory.GetDirectories(taskDirectory, "*", SearchOption.AllDirectories)
+                    .Where(path => (File.Exists(Path.Combine(path, "temperature_history.csv"))
                         && File.Exists(Path.Combine(path, "infrared_response_history.csv")))
+                        || (File.Exists(Path.Combine(path, "temperature_prediction.csv"))
+                        && File.Exists(Path.Combine(path, "point_token_predictions.csv.gz"))))
                     .OrderByDescending(path => Directory.GetLastWriteTimeUtc(path))
                     // 调用对应组件完成当前步骤，并保留产生的处理结果。
                     .FirstOrDefault();
@@ -275,13 +276,18 @@ namespace PreProcess.Wpf.ViewModels
                 {
                     paths = paths ?? new BackendPathResolver().Resolve();
                     // 调用对应组件完成当前步骤，并保留产生的处理结果。
-                    editor.LoadTask(IsPrediction
-                        ? ReferenceTaskLoader.AdjustForPrediction(editor.Task, paths.PackageRoot)
-                        : ReferenceTaskLoader.AdjustForScene(editor.Task, paths.PackageRoot));
+                    if (IsPrediction)
+                    {
+                        // Keep the user's task intact. The backend performs an
+                        // applicability check and reports a warning when the
+                        // frozen model contract is not satisfied.
+                        pending.Enqueue(new ProcessLogEvent { Text = "智能预测保留当前任务输入；若超出模型适用域，将提示但不自动替换场景。" });
+                    }
+                    else editor.LoadTask(ReferenceTaskLoader.AdjustForScene(editor.Task, paths.PackageRoot));
                     // 记录本阶段的状态信息，供界面反馈和问题诊断使用。
-                    pending.Enqueue(new ProcessLogEvent { Text = "已使用软件默认场景作为智能预测参考场景；保留当前仿真时间、统一内部热源、红外发射率和太阳吸收率。" });
+                    if (IsScene) pending.Enqueue(new ProcessLogEvent { Text = "已使用软件默认场景作为场景构建参考。" });
                 }
-                catch (Exception ex) { Status = "代理模型参数自动调整失败：" + ex.Message; return; }
+                catch (Exception ex) { Status = "模型输入准备失败：" + ex.Message; return; }
             }
             // 校验当前条件，仅在满足业务约束时进入该处理分支。
             if (HasInputErrors?.Invoke() == true) { Status = "请先修正标红的输入。"; return; }

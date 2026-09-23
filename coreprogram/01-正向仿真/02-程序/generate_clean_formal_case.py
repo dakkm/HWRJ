@@ -16,6 +16,9 @@ def main():
     vals["TARGET_SCENE"]="\n".join(" ".join(row) for row in cfg["TARGET_SCENE"])
     text=a.template.read_text(encoding="utf-8").format(**vals)
     # 读取或写入约定的数据文件，并维护统一的路径规则。
-    a.output.write_text(text,encoding="utf-8",newline="\n")
+    # Path.write_text() in Python 3.8 has no ``newline`` argument.
+    # Use open() so the packaged Win7-compatible runtime writes stable LF text.
+    with a.output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
 
 if __name__=="__main__": main()

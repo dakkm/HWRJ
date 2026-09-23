@@ -2,7 +2,8 @@
   "package_version": "handoff-clean-runtime-v5",
   "path_rule": "All runtime resources are resolved from the software package root. Modules 01 and 02 share the same forward-request-v1 business input contract. Module 02 converts that complete request to frozen surrogate-model features and rejects unsupported variations.",
   "forward_exe": "01-正向仿真/02-程序/production_main_output_interface.exe",
-  "temperature_model": "02-智能预测/03-模型文件/formal_configured_target_temperature_extratrees.joblib",
+  "temperature_model": "02-智能预测/03-模型文件/temperature_surrogate_v2.joblib",
+  "temperature_model_sha256": "50460D31ED5117FB10F89482ED8439F07998AFA9F7EA32D1432DF2DA27813998",
   "point_image_model_dir": "02-智能预测/03-模型文件",
   "point_image_scene_template": "02-智能预测/03-模型文件/point_image_fixed_scene_runtime.csv",
   "notes": {

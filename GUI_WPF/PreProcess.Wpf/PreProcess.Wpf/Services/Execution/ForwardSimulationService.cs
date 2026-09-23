@@ -112,7 +112,9 @@ namespace PreProcess.Wpf.Services.Execution
                     var probe = MakeRequest(paths);
                     // 将当前结果加入集合，供后续汇总或界面展示。
                     probe.Arguments.Add("-c");
-                    probe.Arguments.Add("import sys,pandas; assert sys.version_info >= (3,10), 'Python 3.10+ required'; print('Python environment ready: '+sys.version.split()[0])");
+                    // The packaged Win7-compatible runtime is Python 3.8.10.
+                    // Do not reject it merely because newer development machines use 3.10+.
+                    probe.Arguments.Add("import sys,pandas; assert sys.version_info >= (3,8), 'Python 3.8+ required'; print('Python environment ready: '+sys.version.split()[0]+' pandas '+pandas.__version__)");
                     // 更新当前流程使用的数据，为下一处理步骤做好准备。
                     probe.Timeout = TimeSpan.FromSeconds(20);
                     var environment = await manager.RunAsync(probe, cancellation.Token).ConfigureAwait(false);

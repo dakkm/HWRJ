@@ -28,8 +28,9 @@ import pandas as pd
 from stage_utils import *
 
 # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
-MODEL_SHA="0d77a38f4457adf1a34275a9b7309ac1aa3e5e880542b19a59a0155f54c31135"
-SCALER_SHA="98a4dd66d29dd64aa6ef4771cd0cea337b6ad590b847e14d2635bafc7180d92a"
+MODEL_FILE="best_model_win7_savedmodel"
+MODEL_SHA=""
+SCALER_SHA="17102e09e6b4e43917cd8903d3c742521b907db26a5daac2bb7f1481aff8d2b7"
 GLOBAL=["q_int","emissivity_ir","absorptivity_solar","time_s","distance_to_detector"]
 # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
 LOCAL=["sphere_id_norm","active_flag","sphere_init_x","sphere_init_y","sphere_init_z","sphere_vx","sphere_vy","sphere_vz","sphere_release_time","sphere_age_s","sphere_released_flag","sphere_pos_x","sphere_pos_y","sphere_pos_z"]
@@ -90,16 +91,41 @@ def _keras_runtime():
     import tensorflow as tf
     import keras
     # 导入当前模块依赖的标准能力或领域组件。
-    from keras import layers, ops
+    from keras import layers
+    try:
+        from keras import ops
+    except ImportError:
+        # Keras 2.10 (the Win7/Python 3.8 runtime) predates keras.ops.
+        class _TensorOps:
+            arange = staticmethod(tf.range)
+            expand_dims = staticmethod(tf.expand_dims)
+            convert_to_tensor = staticmethod(tf.convert_to_tensor)
+            cast = staticmethod(tf.cast)
+            reshape = staticmethod(tf.reshape)
+            abs = staticmethod(tf.abs)
+            minimum = staticmethod(tf.minimum)
+            mean = staticmethod(tf.reduce_mean)
+            square = staticmethod(tf.square)
+        ops = _TensorOps()
 
     return keras, layers, tf, ops
 
 
 def load_forward_model(model_path: Path):
     keras,layers,tf,ops=_keras_runtime()
+    if model_path.is_dir():
+        saved = tf.saved_model.load(str(model_path))
+        signature = saved.signatures["serving_default"]
+        class SavedModelAdapter:
+            def predict(self, inputs, batch_size=None, verbose=0):
+                global_input, local_input = inputs
+                result = signature(global_in=tf.convert_to_tensor(global_input), local_in=tf.convert_to_tensor(local_input))
+                return next(iter(result.values())).numpy()
+        return SavedModelAdapter()
+    register_serializable = getattr(keras.utils, "register_keras_serializable", lambda **kwargs: (lambda cls: cls))
 
     # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
-    @keras.utils.register_keras_serializable(package="thermal_optuna")
+    @register_serializable(package="thermal_optuna")
     class LearnedPositionEmbedding(layers.Layer):
         def __init__(self,n_obj:int,d_model:int,**kwargs):
             # 将外部值转换为内部格式，保证后续计算使用一致的数据类型。
@@ -117,7 +143,7 @@ def load_forward_model(model_path: Path):
             return {**super().get_config(),"n_obj":self.n_obj,"d_model":self.d_model}
 
     # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
-    @keras.utils.register_keras_serializable(package="thermal_optuna")
+    @register_serializable(package="thermal_optuna")
     class TransformerBlock(layers.Layer):
         def __init__(self,d_model:int,num_heads:int,ff_mult:int,dropout:float,**kwargs):
             # 将外部值转换为内部格式，保证后续计算使用一致的数据类型。
@@ -132,7 +158,7 @@ def load_forward_model(model_path: Path):
             # 向调用方返回当前步骤生成的数据或迭代结果。
             return {**super().get_config(),"d_model":self.d_model,"num_heads":self.num_heads,"ff_mult":self.ff_mult,"dropout":self.dropout}
 
-    @keras.utils.register_keras_serializable(package="thermal_optuna")
+    @register_serializable(package="thermal_optuna")
     class WeightedHuberLoss(keras.losses.Loss):
         # 定义 __init__ 处理过程，集中封装该步骤的输入、输出与异常边界。
         def __init__(self,delta:float=1.0,weights:list[float]|None=None,target_dim:int=4,name:str="weighted_huber_loss",**kwargs):
@@ -146,7 +172,15 @@ def load_forward_model(model_path: Path):
             # 向调用方返回当前步骤生成的数据或迭代结果。
             return {**super().get_config(),"delta":self.delta,"weights":self.weights,"target_dim":self.target_dim}
 
-    return keras.models.load_model(model_path,custom_objects={"LearnedPositionEmbedding":LearnedPositionEmbedding,"TransformerBlock":TransformerBlock,"WeightedHuberLoss":WeightedHuberLoss},compile=False)
+    custom_objects = {
+        "LearnedPositionEmbedding": LearnedPositionEmbedding,
+        "TransformerBlock": TransformerBlock,
+        "WeightedHuberLoss": WeightedHuberLoss,
+        "thermal_optuna>LearnedPositionEmbedding": LearnedPositionEmbedding,
+        "thermal_optuna>TransformerBlock": TransformerBlock,
+        "thermal_optuna>WeightedHuberLoss": WeightedHuberLoss,
+    }
+    return keras.models.load_model(model_path, custom_objects=custom_objects, compile=False)
 
 
 def validate_contract(template_path: Path|None=None, model_dir: Path|None=None) -> dict[str,Any]:
@@ -158,9 +192,10 @@ def validate_contract(template_path: Path|None=None, model_dir: Path|None=None) 
         must_exist=True,
     )
     model_dir=model_dir or config_path("point_image_model_dir",MODEL_DIR,must_exist=True)
-    modelp=model_dir/"best_model.keras"; scalep=model_dir/"scalers.json"
+    modelp=model_dir/MODEL_FILE; scalep=model_dir/"scalers.json"
     # 检查当前条件，仅在满足约束时执行对应分支。
-    if sha256(modelp)!=MODEL_SHA: raise RuntimeError("best_model.keras SHA256 不匹配。")
+    if not modelp.is_dir(): raise RuntimeError("Win7 点图像 SavedModel 目录不存在。")
+    if MODEL_SHA and sha256(modelp)!=MODEL_SHA: raise RuntimeError("点图像模型 SHA256 不匹配。")
     if sha256(scalep)!=SCALER_SHA: raise RuntimeError("scalers.json SHA256 不匹配。")
     d=load_scene_template(template_path)
     # 读取或写入约定的数据文件，并维护统一的路径规则。
@@ -185,7 +220,7 @@ def main(validate_only: bool=False):
         # 更新当前流程所需的中间数据，为下一计算步骤做好准备。
         must_exist=True,
     )
-    md=config_path("point_image_model_dir",MODEL_DIR,must_exist=True); modelp=md/"best_model.keras"; scalep=md/"scalers.json"
+    md=config_path("point_image_model_dir",MODEL_DIR,must_exist=True); modelp=md/MODEL_FILE; scalep=md/"scalers.json"
     # 校验输入数据及运行前提，提前拒绝不符合契约的参数。
     contract=validate_contract(templatep,md)
     if validate_only:
@@ -220,13 +255,16 @@ def main(validate_only: bool=False):
         for i,c in enumerate(TARGET): base[f"pred_{c}"]=flat[:,i]
         base.insert(0,"candidate_id",r.candidate_id); base.insert(0,"source_case_id",r.source_case_id); base.insert(0,"target_id",r.target_id)
         base["pred_spot_power"]=10**base.pred_log_spot_power; base["pred_spot_intensity"]=10**base.pred_log_spot_intensity
+        base["physical_pixel_area_m2"]=(base.input_SPOT_PLANE_SIZE/base.input_GRID_NX)*(base.input_SPOT_PLANE_SIZE/base.input_GRID_NY)
+        base["pred_spot_power_W"]=np.maximum(base.pred_spot_intensity-1e-18,0.0)
+        base["pred_detector_irradiance_W_m2"]=base.pred_spot_power_W/base.physical_pixel_area_m2
         px,py,v=pixel(base.pred_screen_x.to_numpy(),base.pred_screen_y.to_numpy(),base.input_GRID_NX.to_numpy(),base.input_GRID_NY.to_numpy(),base.input_SPOT_PLANE_SIZE.to_numpy())
         # 把本次处理结果加入集合，供后续汇总或输出使用。
         base["pixel_x"]=px; base["pixel_y"]=py; base["in_bounds"]=v; tokens.append(base)
         fr=[]
         for frame,fg in base.groupby("frame_id",sort=True):
             # 执行数组或表格数据运算，为后续数值处理准备结果。
-            valid=fg.in_bounds.to_numpy(bool); power=fg.pred_spot_power.to_numpy(); intensity=fg.pred_spot_intensity.to_numpy(); w=power[valid]; xx=fg.pixel_x.to_numpy()[valid]; yy=fg.pixel_y.to_numpy()[valid]
+            valid=fg.in_bounds.to_numpy(bool); power=fg.pred_spot_power_W.to_numpy(); intensity=fg.pred_spot_intensity.to_numpy(); w=power[valid]; xx=fg.pixel_x.to_numpy()[valid]; yy=fg.pixel_y.to_numpy()[valid]
             fr.append({"frame_id":frame,"time_s":fg.time_s.iloc[0],"total_power":w.sum(),"peak_power":w.max() if len(w) else 0,"centroid_x":np.average(xx,weights=w) if w.sum()>0 else np.nan,"centroid_y":np.average(yy,weights=w) if w.sum()>0 else np.nan,"total_intensity":intensity[valid].sum(),"released_count":int((fg.sphere_released_flag>=.5).sum())})
         fr=pd.DataFrame(fr)
         # 把本次处理结果加入集合，供后续汇总或输出使用。
@@ -243,7 +281,7 @@ def main(validate_only: bool=False):
     for i,f in enumerate(LOCAL): lineage.append({"field_name":f,"tensor_group":"local","tensor_index":i,"source_type":"fixed_scene_template","source_file":str(templatep),"source_field":f,"candidate_dependent":False,"fixed_scene_inherited":True,"time_dependent":f in ["sphere_age_s","sphere_released_flag","sphere_pos_x","sphere_pos_y","sphere_pos_z"],"transformation":"standardize scaler","missing_policy":"block"})
     lp=OUT/"point_image_feature_lineage.csv"; pd.DataFrame(lineage).to_csv(lp,index=False)
     # 将外部值转换为内部格式，保证后续计算使用一致的数据类型。
-    cfg=OUT/"configs/stage_f_point_image_config.json"; jwrite(cfg,{"model":str(modelp),"model_sha256":MODEL_SHA,"scaler":str(scalep),"scaler_sha256":SCALER_SHA,"scene_template":str(templatep),"scene_state_policy":"one fixed 1616-row scene template; candidate changes only q_int/emissivity_ir/absorptivity_solar","source_case_id_policy":"metadata only; not used to select model state","n_obj":16,"global_cols":GLOBAL,"local_cols":LOCAL,"targets":TARGET,"inference_seconds":infer_s,"backend":"Keras 3 + TensorFlow (fixed)"})
+    cfg=OUT/"configs/stage_f_point_image_config.json"; jwrite(cfg,{"model":str(modelp),"model_format":"TensorFlow SavedModel","model_sha256":MODEL_SHA,"model_manifest":str(modelp/"MODEL_MANIFEST.json"),"scaler":str(scalep),"scaler_sha256":SCALER_SHA,"scene_template":str(templatep),"scene_state_policy":"one fixed 1616-row scene template; candidate changes only q_int/emissivity_ir/absorptivity_solar","source_case_id_policy":"metadata only; not used to select scene template","n_obj":16,"global_cols":GLOBAL,"local_cols":LOCAL,"targets":TARGET,"inference_seconds":infer_s,"backend":"TensorFlow SavedModel compatible with TensorFlow 2.10"})
     finish("F",start,[selp,templatep,modelp,scalep],[tp,mp,rp,lp],cfg,"Completed with controlled boundary",{"candidate_count":len(sel),"token_rows":len(tok),"expected_rows":len(sel)*101*16,"template_rows":len(state),"point_image_not_screening_gate":True})
     return 0
 

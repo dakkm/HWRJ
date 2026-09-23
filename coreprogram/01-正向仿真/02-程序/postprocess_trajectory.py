@@ -18,7 +18,9 @@ import argparse
 import csv
 # 导入当前模块依赖的标准能力或领域组件。
 import math
+import struct
 import sys
+import zlib
 from collections import defaultdict
 # 导入当前模块依赖的标准能力或领域组件。
 from pathlib import Path
@@ -160,13 +162,66 @@ def write_metrics(path: Path, metrics):
         writer.writerows(metrics)
 
 
+def _write_png(path: Path, width: int, height: int, pixels: bytearray):
+    raw = b"".join(b"\x00" + bytes(pixels[y * width * 3:(y + 1) * width * 3]) for y in range(height))
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+    payload = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    payload += chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b"")
+    path.write_bytes(payload)
+
+
+def _fallback_plot(by_obj, outdir: Path, filename: str, x_key: str, y_key: str):
+    width, height = 900, 560; left, top, right, bottom = 80, 35, width - 30, height - 55
+    pixels = bytearray([255, 255, 255] * (width * height))
+    is_3d = filename == "trajectory_3d.png"
+    def project(p):
+        if is_3d:
+            # Isometric projection keeps all three spatial coordinates visible.
+            return float(p["x_m"]) - 0.55 * float(p["y_m"]), float(p["z_m"]) + 0.35 * float(p["y_m"])
+        return float(p[x_key]), float(p[y_key])
+    values = [project(p) for pts in by_obj.values() for p in pts]
+    if not values: _write_png(outdir / filename, width, height, pixels); return
+    xmin, xmax = min(v[0] for v in values), max(v[0] for v in values); ymin, ymax = min(v[1] for v in values), max(v[1] for v in values)
+    if xmax <= xmin: xmax = xmin + 1.0
+    if ymax <= ymin: ymax = ymin + 1.0
+    def xy(x, y): return (int(left + (x-xmin)*(right-left)/(xmax-xmin)), int(bottom - (y-ymin)*(bottom-top)/(ymax-ymin)))
+    def pixel(x, y, color):
+        if 0 <= x < width and 0 <= y < height:
+            i = (y * width + x) * 3; pixels[i:i+3] = bytes(color)
+    def line(a, b, color):
+        x0,y0=a; x1,y1=b; dx,sx=abs(x1-x0),1 if x0<x1 else -1; dy,sy=-abs(y1-y0),1 if y0<y1 else -1; err=dx+dy
+        while True:
+            pixel(x0,y0,color)
+            if x0==x1 and y0==y1: break
+            e2=2*err
+            if e2>=dy: err+=dy; x0+=sx
+            if e2<=dx: err+=dx; y0+=sy
+    line((left,top),(left,bottom),(40,40,40)); line((left,bottom),(right,bottom),(40,40,40))
+    for i in range(1,5):
+        gy=top+i*(bottom-top)//5; gx=left+i*(right-left)//5; line((left,gy),(right,gy),(225,230,235)); line((gx,top),(gx,bottom),(225,230,235))
+    colors=[(31,119,180),(214,39,40),(44,160,44),(148,103,189)]
+    for index, object_id in enumerate(sorted(by_obj)):
+        pts=sorted(by_obj[object_id], key=lambda r:(r["time_s"],r["frame_id"]))
+        for first, second in zip(pts[:-1], pts[1:]):
+            a, b = project(first), project(second)
+            line(xy(a[0], a[1]), xy(b[0], b[1]), colors[index % len(colors)])
+    _write_png(outdir / filename, width, height, pixels)
+
+
+def make_fallback_plots(by_obj, outdir: Path):
+    _fallback_plot(by_obj, outdir, "trajectory_3d.png", "x_m", "y_m")
+    _fallback_plot(by_obj, outdir, "trajectory_range.png", "time_s", "range_to_detector_m")
+
+
 def make_plots(by_obj, outdir: Path):
     try:
         # 导入当前模块依赖的标准能力或领域组件。
         import matplotlib.pyplot as plt
     except Exception as exc:
-        print(f"[WARN] matplotlib unavailable; CSV metrics were generated, plots skipped: {exc}", file=sys.stderr)
+        print(f"[WARN] matplotlib unavailable; using standard-library PNG renderer: {exc}", file=sys.stderr)
         # 向调用方返回当前步骤生成的数据或迭代结果。
+        make_fallback_plots(by_obj, outdir)
         return
 
     # The trajectory view is intended to show the primary target only.

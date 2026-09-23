@@ -24,13 +24,33 @@ namespace PreProcess.Wpf.Services.Results
             foreach (ResultRow row in rows)
             {
                 // 更新当前流程使用的数据，为下一处理步骤做好准备。
-                int x = (int)Math.Round(Number(row, "pixel_x"));
-                int y = (int)Math.Round(Number(row, "pixel_y"));
+                int x = (int)Math.Round(Number(row, "pixel_x")) - 1;
+                int y = (int)Math.Round(Number(row, "pixel_y")) - 1;
                 // 校验当前条件，仅在满足业务约束时进入该处理分支。
-                if (x >= 0 && x < width && y >= 0 && y < height) values[y * width + x] += Number(row, "pred_spot_intensity");
+                if (x >= 0 && x < width && y >= 0 && y < height) values[y * width + x] += PredictionIrradiance(row);
             }
             return new PointImageResult { Name = "预测红外点图像", SourcePath = tokens.SourcePath, Width = width, Height = height,
-                Values = values, FrameId = frame, TimeSeconds = Number(rows[0], "time_s"), ValueName = "Radiant intensity", ValueUnit = "W/sr" };
+                Values = values, FrameId = frame, TimeSeconds = Number(rows[0], "time_s"), ValueName = "Detector irradiance", ValueUnit = "W/m²" };
+        }
+
+        internal static double PredictionPower(ResultRow row)
+        {
+            object value;
+            if (row.Values.TryGetValue("pred_spot_power_W", out value) && value != null)
+                return Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            return Math.Max(Math.Pow(10.0, Number(row, "pred_log_spot_intensity")) - 1e-18, 0.0);
+        }
+
+        internal static double PredictionIrradiance(ResultRow row)
+        {
+            object value;
+            if (row.Values.TryGetValue("pred_detector_irradiance_W_m2", out value) && value != null)
+                return Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            double nx = Number(row, "input_GRID_NX"), ny = Number(row, "input_GRID_NY");
+            double size = Number(row, "input_SPOT_PLANE_SIZE");
+            if (nx <= 0 || ny <= 0 || size <= 0 || nx != Math.Floor(nx) || ny != Math.Floor(ny))
+                throw new InvalidOperationException("预测点图像的物理网格合同无效。");
+            return PredictionPower(row) / ((size / nx) * (size / ny));
         }
 
         // 执行该成员负责的业务步骤，并向调用方提供一致的处理结果。

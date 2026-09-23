@@ -30,8 +30,10 @@ namespace PreProcess.Wpf.Services.Execution
         {
             if (String.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) throw new DirectoryNotFoundException("请选择有效的参考/候选结果目录。");
             // 校验当前条件，仅在满足业务约束时进入该处理分支。
-            if (!File.Exists(Path.Combine(path, "temperature_history.csv")) || !File.Exists(Path.Combine(path, "infrared_response_history.csv")))
-                throw new ArgumentException("当前03入口要求01正式output目录（温度与红外历史文件）。02预测输出不兼容；不会转换或伪造物理结果。");
+            bool formalForward = File.Exists(Path.Combine(path, "temperature_history.csv")) && File.Exists(Path.Combine(path, "infrared_response_history.csv"));
+            bool prediction = File.Exists(Path.Combine(path, "temperature_prediction.csv")) && File.Exists(Path.Combine(path, "point_token_predictions.csv.gz"));
+            if (!formalForward && !prediction)
+                throw new ArgumentException("请选择01正向计算结果，或同时包含温度预测和点图像预测文件的02智能预测结果目录。");
             // Detailed column/time-axis checks remain with the authoritative backend extractor.
         }
     }

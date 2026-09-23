@@ -13,10 +13,10 @@
     <CheckBox Content="统计中包含释放前、仍与载体连接的轨迹样本" IsChecked="{Binding TrajectoryIncludePrerelease}" Margin="0,8"/>
    </StackPanel>
    <StackPanel Visibility="{Binding IsPrediction, Converter={StaticResource Visible}}">
-    <TextBlock Text="智能预测将同时生成可信温度和红外点图像预测，无需选择预测模式。温度为避免旧代理模型的大偏差，已统一使用正向计算内核，因此首次运行耗时与正向计算接近；红外点图像仍使用智能模型。计算时间读取场景任务中的仿真时间（最大 1000 s），并保留当前任务的内部热源功率、红外发射率和太阳吸收率。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="智能预测使用模型适用域内的默认模板作为首次任务输入；后续运行保留当前任务输入并检查模型适用域。超出适用域时仅提示，不自动替换场景。温度和红外点图像均由02代理模型生成，计算时间读取场景任务中的仿真时间（最大 1000 s）。" TextWrapping="Wrap" Margin="0,8"/>
    </StackPanel>
    <StackPanel Visibility="{Binding IsSimilarity, Converter={StaticResource Visible}}">
-    <TextBlock Text="请选择参考结果和候选结果的正向计算输出目录。两份结果均须包含温度与红外响应数据；智能预测结果不能直接用于本评价。" TextWrapping="Wrap" Margin="0,8"/>
+    <TextBlock Text="请选择参考结果和候选结果目录。支持01正向计算输出，也支持02智能预测输出；智能预测目录需包含温度预测和点图像预测文件。" TextWrapping="Wrap" Margin="0,8"/>
     <TextBlock Text="参考正向结果目录"/>
     <Grid Margin="0,3,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
      <TextBox Text="{Binding ReferenceDirectory, Mode=OneWay}" IsReadOnly="True" VerticalContentAlignment="Center"/>

@@ -6,7 +6,7 @@
 
 二、Python运行依赖
 核心依赖包括 Python、NumPy、pandas、joblib、scikit-learn，以及点图像模型所需的 TensorFlow/Keras。
-M2 ExtraTrees正式部署优先使用 scikit-learn 1.6.1。点图像模型固定采用 Keras 3 + TensorFlow backend。
+M2 ExtraTrees Win7兼容模型使用 Python 3.8.10、NumPy 1.23.5、pandas 1.3.5、SciPy 1.10.1、scikit-learn 1.0.2、joblib 1.2.0 原生训练和序列化。点图像模型仍固定采用 Keras 3 + TensorFlow backend，不属于本次Win7模型替换范围。
 
 三、正式入口
 正式GUI或上层程序只调用 config.json 中 standard_entries 列出的四个入口：

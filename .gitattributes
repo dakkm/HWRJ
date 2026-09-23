@@ -2,3 +2,4 @@
 coreprogram/** -text
 *.joblib filter=lfs diff=lfs merge=lfs -text
 *.keras filter=lfs diff=lfs merge=lfs -text
+coreprogram/02-智能预测/03-模型文件/temperature_surrogate_v2.joblib filter=lfs diff=lfs merge=lfs -text

@@ -13,7 +13,7 @@
       "early_abs_error": 32.062
     }
   },
-  "temperature_model_expected_sha256": "7aae9e013ed816e35c73a48fbbe53f6d4331298090e77c1c1a2d04cc2f13ad7a",
+  "temperature_model_expected_sha256": "50460d31ed5117fb10f89482ed8439f07998afa9f7ea32d1432df2da27813998",
   "candidate_order": "input file order; no sorting or ranking",
   "forward_executable_sha_policy": "record_only; local oneAPI recompilation is allowed",
   "formal_output": "candidate parameters only; point-image prediction is not part of the default 04 inverse-search acceptance chain"
