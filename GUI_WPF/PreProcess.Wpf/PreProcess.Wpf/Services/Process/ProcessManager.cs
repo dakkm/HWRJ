@@ -37,6 +37,7 @@ namespace PreProcess.Wpf.Services.Process
                 {
                     Emit(StateChanged, ProcessRunState.Preparing);
                     if (request == null || !File.Exists(request.Executable)) throw new FileNotFoundException("未找到可执行程序。", request?.Executable);
+                    ValidateExecutable(request.Executable);
                     // 校验当前条件，仅在满足业务约束时进入该处理分支。
                     if (!Directory.Exists(request.WorkingDirectory)) throw new DirectoryNotFoundException("程序工作目录不存在：" + request.WorkingDirectory);
                     if (request.Timeout.HasValue) timeout.CancelAfter(request.Timeout.Value);
@@ -126,6 +127,21 @@ namespace PreProcess.Wpf.Services.Process
                 }
             }
             catch { child.Terminate(); throw; }
+        }
+        private static void ValidateExecutable(string path)
+        {
+            // 损坏的 .exe 交给 CreateProcess 可能触发 Windows 兼容性处理并长时间阻塞。
+            if (!String.Equals(Path.GetExtension(path), ".exe", StringComparison.OrdinalIgnoreCase)) return;
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = new BinaryReader(stream))
+            {
+                if (stream.Length < 64 || reader.ReadUInt16() != 0x5A4D) throw new InvalidDataException("可执行文件不是有效的 Windows PE 程序。");
+                stream.Position = 0x3C;
+                int peOffset = reader.ReadInt32();
+                if (peOffset < 64 || peOffset > stream.Length - 4) throw new InvalidDataException("可执行文件的 PE 头无效。");
+                stream.Position = peOffset;
+                if (reader.ReadUInt32() != 0x00004550) throw new InvalidDataException("可执行文件的 PE 签名无效。");
+            }
         }
         // 执行该成员负责的业务步骤，并向调用方提供一致的处理结果。
         private static void Emit<T>(Action<T> handlers, T value)

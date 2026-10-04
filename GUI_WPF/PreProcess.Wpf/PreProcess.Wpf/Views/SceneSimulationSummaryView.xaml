@@ -1,0 +1,32 @@
+<UserControl x:Class="PreProcess.Wpf.Views.SceneSimulationSummaryView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <StackPanel Margin="22">
+   <TextBlock Text="红外场景仿真" FontSize="24" FontWeight="SemiBold"/>
+   <Border BorderBrush="#D8E2EE" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,12">
+    <StackPanel>
+     <TextBlock Text="仿真状态" FontSize="17" FontWeight="SemiBold"/>
+     <TextBlock Text="{Binding Status}" FontSize="20" Foreground="#245A85" Margin="0,12,0,4"/>
+     <TextBlock Text="{Binding Availability}" Foreground="#24724A" TextWrapping="Wrap"/>
+     <TextBlock Text="运行目录" FontWeight="SemiBold" Margin="0,12,0,2"/>
+     <TextBlock Text="{Binding ResultLocation}" Foreground="#64748B" TextWrapping="Wrap"/>
+    </StackPanel>
+   </Border>
+   <Border BorderBrush="#D8E2EE" BorderThickness="1" CornerRadius="5" Padding="16">
+    <StackPanel>
+     <TextBlock Text="结果组成" FontSize="17" FontWeight="SemiBold"/>
+     <TextBlock Text="• 温度：逐目标集总温度曲线，非网格单元温度场" Margin="0,10,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="• 红外响应：复用现有红外图像/响应结果" Margin="0,6,0,0"/>
+     <TextBlock Text="• 轨迹：通过后处理任务统一查看" Margin="0,6,0,0"/>
+    </StackPanel>
+   </Border>
+   <Border BorderBrush="#D8E2EE" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,12,0,0">
+    <StackPanel>
+     <TextBlock Text="结果时间轴" FontSize="17" FontWeight="SemiBold"/>
+     <TextBlock Text="{Binding TimelineSummary}" Foreground="#475569" Margin="0,10,0,0" TextWrapping="Wrap"/>
+    </StackPanel>
+   </Border>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

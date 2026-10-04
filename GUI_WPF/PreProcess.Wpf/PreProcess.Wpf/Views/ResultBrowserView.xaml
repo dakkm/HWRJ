@@ -45,6 +45,33 @@
      </Grid>
     </Grid>
    </TabItem>
+   <TabItem Header="网格预览" Visibility="{Binding HasPreviewMesh, Converter={StaticResource Visible}}">
+    <Grid Margin="4">
+     <views:MeshPreviewControl Mesh="{Binding PreviewMesh}" MinHeight="260"/>
+    </Grid>
+   </TabItem>
+   <TabItem Header="时间轴">
+    <Grid Margin="6">
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="160"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+     <TextBlock Text="{Binding TimelineText}" TextWrapping="Wrap" Margin="4,4,4,8" Foreground="#475569"/>
+     <DataGrid Grid.Row="1" ItemsSource="{Binding Timeline.Lanes}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" CanUserAddRows="False">
+      <DataGrid.Columns>
+       <DataGridTextColumn Header="来源" Binding="{Binding Name}" Width="140"/>
+       <DataGridTextColumn Header="状态" Binding="{Binding Availability}" Width="*"/>
+       <DataGridTextColumn Header="时间点" Binding="{Binding TimePointCount}" Width="65"/>
+       <DataGridTextColumn Header="范围" Binding="{Binding Range}" Width="130"/>
+      </DataGrid.Columns>
+     </DataGrid>
+     <DataGrid Grid.Row="2" ItemsSource="{Binding Timeline.Points}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" CanUserAddRows="False" EnableRowVirtualization="True">
+      <DataGrid.Columns>
+       <DataGridTextColumn Header="时间 (s)" Binding="{Binding TimeSeconds}" Width="*"/>
+       <DataGridTextColumn Header="温度" Binding="{Binding Temperature}" Width="70"/>
+       <DataGridTextColumn Header="轨迹" Binding="{Binding Trajectory}" Width="70"/>
+       <DataGridTextColumn Header="红外" Binding="{Binding Infrared}" Width="70"/>
+      </DataGrid.Columns>
+     </DataGrid>
+    </Grid>
+   </TabItem>
    <TabItem Header="温度曲线">
     <TabItem.Style><Style TargetType="TabItem"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsTrajectoryResult}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding HidePhysicalVisualizations}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TabItem.Style>
     <Grid>

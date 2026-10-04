@@ -32,7 +32,9 @@ namespace PreProcess.Wpf.Services.Execution
             // 继续处理当前业务步骤，保持上下文状态一致。
             string key;
             using (var sha = SHA256.Create()) key = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(manifest))).Replace("-", "");
-            string root = Path.Combine(paths.RuntimeRoot, "backend", key, "package");
+            // Windows 7 still commonly enforces MAX_PATH. A 96-bit content-addressed
+            // directory keeps the copied package beneath that limit for normal run roots.
+            string root = Path.Combine(paths.RuntimeRoot, "backend", key.Substring(0, 24), "package");
             // 遍历当前数据集合，逐项完成必要的转换或状态更新。
             foreach (var item in hashes)
             // 调用方应通过公开成员访问功能，内部状态由当前类型统一维护。

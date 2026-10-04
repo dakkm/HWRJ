@@ -35,7 +35,7 @@ namespace PreProcess.Wpf.ViewModels
         private string selectedModule = "01";
         // 保存该组件运行所需的配置或中间状态。
         public string[] Modules => new[] { "01", "02", "轨迹", "03", "04" };
-        public string SelectedModule { get => selectedModule; set { if (IsBusy || Array.IndexOf(Modules, value) < 0) return; selectedModule = value; Notify(); Notify(nameof(IsForward)); Notify(nameof(IsTrajectory)); Notify(nameof(IsPrediction)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle)); ShowSelectedModuleResult(); } }
+        public string SelectedModule { get => selectedModule; set { if (IsBusy || Array.IndexOf(Modules, value) < 0) return; selectedModule = value; Notify(); Notify(nameof(IsForward)); Notify(nameof(IsTrajectory)); Notify(nameof(IsPrediction)); Notify(nameof(IsSimilarity)); Notify(nameof(IsScene)); Notify(nameof(ModuleTitle)); ShowSelectedModuleResult(); Notify(nameof(ForwardResultBrowser)); } }
         // 保存该组件运行所需的配置或中间状态。
         public bool IsForward => SelectedModule == "01";
         public bool IsTrajectory => SelectedModule == "轨迹";
@@ -74,7 +74,8 @@ namespace PreProcess.Wpf.ViewModels
         public string ResultLocation { get => location; private set { location = value; Notify(); } }
         // 保存该组件运行所需的配置或中间状态。
         private ResultBrowserViewModel resultBrowser;
-        public ResultBrowserViewModel ResultBrowser { get => resultBrowser; private set { resultBrowser = value; Notify(); } }
+        public ResultBrowserViewModel ResultBrowser { get => resultBrowser; private set { resultBrowser = value; Notify(); if (IsForward) Notify(nameof(ForwardResultBrowser)); } }
+        public ResultBrowserViewModel ForwardResultBrowser { get { return IsForward ? ResultBrowser : resultBrowsers.Select("01", "正向计算"); } }
         private RunRecord lastRun;
         // 通知界面绑定层刷新相关状态，确保显示内容与模型一致。
         public RunRecord LastRun { get => lastRun; private set { lastRun = value; Notify(); } }
@@ -353,6 +354,7 @@ namespace PreProcess.Wpf.ViewModels
             }
             resultBrowsers.Remember(moduleKey, browser);
             ResultBrowser = browser;
+            if (moduleKey == "01") Notify(nameof(ForwardResultBrowser));
         }
         // 执行该成员负责的业务步骤，并向调用方提供一致的处理结果。
         private void ShowSelectedModuleResult()

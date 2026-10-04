@@ -7,6 +7,7 @@
  <Window.DataContext><vm:MainWindowViewModel/></Window.DataContext>
  <Window.Resources>
   <DataTemplate DataType="{x:Type vm:NavigationItemViewModel}"><views:PlaceholderPage/></DataTemplate>
+  <DataTemplate DataType="{x:Type vm:CapabilityPageViewModel}"><views:CapabilityPageView/></DataTemplate>
  <DataTemplate DataType="{x:Type vm:TaskSettingsViewModel}"><views:TaskSettingsView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:TargetSettingsViewModel}"><views:TargetSettingsView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:SceneMotionViewModel}"><views:SceneMotionView/></DataTemplate>
@@ -14,35 +15,41 @@
 <DataTemplate DataType="{x:Type vm:ForwardRunViewModel}"><views:ForwardRunView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:CurrentTaskViewModel}"><views:CurrentTaskView/></DataTemplate>
 <DataTemplate DataType="{x:Type vm:RunHistoryViewModel}"><views:RunHistoryView/></DataTemplate>
-<DataTemplate DataType="{x:Type vm:OutputResultsViewModel}"><views:OutputResultsView/></DataTemplate></Window.Resources>
+<DataTemplate DataType="{x:Type vm:OutputResultsViewModel}"><views:OutputResultsView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:PostProcessingTaskViewModel}"><views:PostProcessingTaskView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:ModelBoundaryConfigViewModel}"><views:ModelBoundaryConfigView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:SolverControlViewModel}"><views:SolverControlView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:ForwardStageViewModel}"><views:ForwardStageView/></DataTemplate>
+<DataTemplate DataType="{x:Type vm:SceneSimulationSummaryViewModel}"><views:SceneSimulationSummaryView/></DataTemplate></Window.Resources>
  <DockPanel>
   <Menu DockPanel.Dock="Top">
    <MenuItem Header="文件"><MenuItem Header="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}"/><MenuItem Header="保存任务" Command="{Binding Editor.SaveCommand}" IsEnabled="{Binding Execution.CanEdit}"/></MenuItem>
    <MenuItem Header="任务"><MenuItem Header="任务设置" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[0].Children[0]}"/></MenuItem>
-   <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding Execution.RunCommand}"/><MenuItem Header="停止" Command="{Binding Execution.StopCommand}"/></MenuItem>
-   <MenuItem Header="查看"><MenuItem Header="输出结果" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[2].Children[2]}"/></MenuItem>
+   <MenuItem Header="计算"><MenuItem Header="运行" Command="{Binding RunCurrentPageCommand}" IsEnabled="{Binding CanRunCurrentPage}"/><MenuItem Header="停止" Command="{Binding Execution.StopCommand}"/></MenuItem>
+   <MenuItem Header="查看"><MenuItem Header="输出结果" Command="{Binding NavigateCommand}" CommandParameter="{Binding Navigation[10].Children[2]}"/></MenuItem>
    <MenuItem Header="帮助"><MenuItem Header="关于工作台" Command="{Binding PlaceholderCommand}" CommandParameter="帮助"/></MenuItem>
   </Menu>
   <ToolBarTray DockPanel.Dock="Top" IsLocked="True"><ToolBar>
    <Button Content="打开任务" Command="{Binding Editor.OpenCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
    <Button Content="保存任务" Command="{Binding Editor.SaveCommand}" IsEnabled="{Binding Execution.CanEdit}" Padding="10,4"/>
-   <Separator/><Button Content="运行" Command="{Binding Execution.RunCommand}" Padding="16,4"/>
+   <Separator/><Button Content="运行当前模块" Command="{Binding RunCurrentPageCommand}" IsEnabled="{Binding CanRunCurrentPage}" Padding="16,4"/>
    <Button Content="停止" Command="{Binding Execution.StopCommand}" Padding="16,4"/>
   </ToolBar></ToolBarTray>
   <StatusBar DockPanel.Dock="Bottom"><TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis"/></StatusBar>
   <Grid Margin="8">
-   <Grid.ColumnDefinitions><ColumnDefinition Width="230" MinWidth="170"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="320"/><ColumnDefinition Width="6"/><ColumnDefinition Width="350" MinWidth="240"/></Grid.ColumnDefinitions>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="280" MinWidth="250"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="320"/><ColumnDefinition Width="6"/><ColumnDefinition Width="360" MinWidth="260"/></Grid.ColumnDefinitions>
    <Border Style="{StaticResource Panel}"><DockPanel>
     <TextBlock DockPanel.Dock="Top" Text="任务与功能导航" Style="{StaticResource PanelTitle}"/>
     <TreeView x:Name="NavigationTree" ItemsSource="{Binding Navigation}" SelectedItemChanged="OnNavigationSelectionChanged" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="任务与功能导航">
-     <TreeView.ItemTemplate><HierarchicalDataTemplate ItemsSource="{Binding Children}"><TextBlock Text="{Binding Title}"/></HierarchicalDataTemplate></TreeView.ItemTemplate>
+     <TreeView.ItemContainerStyle><Style TargetType="TreeViewItem"><Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/><Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/><Setter Property="Padding" Value="5,6"/><Setter Property="AutomationProperties.Name" Value="{Binding DisplayTitle}"/></Style></TreeView.ItemContainerStyle>
+     <TreeView.ItemTemplate><HierarchicalDataTemplate ItemsSource="{Binding Children}"><TextBlock Text="{Binding DisplayTitle}" MaxWidth="210" TextWrapping="Wrap"/></HierarchicalDataTemplate></TreeView.ItemTemplate>
     </TreeView>
    </DockPanel></Border>
    <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整导航区宽度"/>
    <Grid Grid.Column="2">
     <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="230"/><RowDefinition Height="6"/><RowDefinition Height="190" MinHeight="120"/></Grid.RowDefinitions>
     <Border Style="{StaticResource Panel}"><DockPanel>
-     <TextBlock DockPanel.Dock="Top" Text="参数 / 数据编辑区" Style="{StaticResource PanelTitle}"/>
+     <TextBlock DockPanel.Dock="Top" Text="工作区" Style="{StaticResource PanelTitle}"/>
      <ContentControl x:Name="EditorContent" Content="{Binding CurrentContent}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     </DockPanel></Border>
     <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整编辑区与日志区高度"/>
@@ -54,8 +61,18 @@
    </Grid>
    <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="调整结果区宽度"/>
    <Border Grid.Column="4" Style="{StaticResource Panel}"><DockPanel>
-    <TextBlock DockPanel.Dock="Top" Text="结果浏览器" Style="{StaticResource PanelTitle}"/>
-    <views:ResultBrowserView DataContext="{Binding Execution.ResultBrowser}"/>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding SidePanelTitle}" Style="{StaticResource PanelTitle}"/>
+    <Grid>
+     <views:ResultBrowserView DataContext="{Binding ActiveResultBrowser}">
+      <views:ResultBrowserView.Style><Style TargetType="views:ResultBrowserView"><Style.Triggers><DataTrigger Binding="{Binding DataContext.IsConfigurationPage, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></views:ResultBrowserView.Style>
+     </views:ResultBrowserView>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <ScrollViewer.Style><Style TargetType="ScrollViewer"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsConfigurationPage}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
+      <ItemsControl ItemsSource="{Binding ConfigurationPage.Parameters}" Margin="16">
+       <ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,0,18"><TextBlock Text="{Binding Name}" Foreground="#64748B" TextWrapping="Wrap"/><TextBlock Text="{Binding Value}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+     </ScrollViewer>
+    </Grid>
    </DockPanel></Border>
   </Grid>
  </DockPanel>

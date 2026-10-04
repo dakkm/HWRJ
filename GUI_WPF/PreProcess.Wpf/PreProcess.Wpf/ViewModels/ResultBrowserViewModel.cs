@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using PreProcess.Wpf.Models.Results;
 using PreProcess.Wpf.Services.Execution;
+using PreProcess.Wpf.Services.Mesh;
+using PreProcess.Wpf.Services.Results;
 
 namespace PreProcess.Wpf.ViewModels
 {
@@ -88,6 +90,20 @@ namespace PreProcess.Wpf.ViewModels
         public bool HasDataSets { get { return DataSets.Count > 0; } }
         // 通过属性封装状态访问，并在变更时执行必要的同步操作。
         public bool HasTemperatureChart { get { return TemperatureChart != null && TemperatureChart.HasData; } }
+        public string TimelineText
+        {
+            get
+            {
+                if (Timeline != null) return Timeline.Message;
+                return IsLoading ? "正在运行，结果时间轴尚未生成。" : "暂无可用的正向结果时间轴（状态：" + (RunStatus ?? "未知") + "）。";
+            }
+        }
+        public ForwardTimelineSnapshot Timeline { get; private set; }
+        public bool HasTimeline { get { return Timeline != null && Timeline.Points.Count > 0; } }
+        private SphericalShellMesh previewMesh;
+        public SphericalShellMesh PreviewMesh { get { return previewMesh; } private set { previewMesh = value; Notify(); Notify(nameof(HasPreviewMesh)); } }
+        public bool HasPreviewMesh { get { return PreviewMesh != null; } }
+        public void SetPreviewMesh(SphericalShellMesh value) { PreviewMesh = value; }
         public bool HasPointImages { get { return PointImages.Count > 0; } }
         // 通过属性封装状态访问，并在变更时执行必要的同步操作。
         public bool IsTrajectoryResult { get; private set; }
@@ -218,6 +234,8 @@ namespace PreProcess.Wpf.ViewModels
             foreach (KeyValuePair<string, string> item in result.Summary) Add(view.Summary, item.Key, item.Value);
             // 遍历当前数据集合，逐项完成必要的转换或状态更新。
             foreach (string issue in result.Issues) if (!String.IsNullOrWhiteSpace(issue)) view.Issues.Add(issue);
+            if (result.ModuleType == ResultModuleType.Forward)
+                view.Timeline = new ForwardTimelineBuilder().Build(result);
 
             // A completed forward run also contains the feature-extraction CSVs.
             // On that page the data selector is a feature selector, so expose the
